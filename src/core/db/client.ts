@@ -104,20 +104,26 @@ function semearAdminPadrao(db: Database.Database) {
   );
 }
 
-/** Retorna a conexão SQLite única do processo, criando o arquivo/schema na primeira chamada. */
 export function getDb(): Database.Database {
   if (instancia) return instancia;
 
-  fs.mkdirSync(path.dirname(CAMINHO_DB), { recursive: true });
+  try {
+    fs.mkdirSync(path.dirname(CAMINHO_DB), { recursive: true });
 
-  const db = new Database(CAMINHO_DB);
-  db.pragma("journal_mode = WAL");
-  db.pragma("foreign_keys = ON");
+    const db = new Database(CAMINHO_DB);
 
-  criarEsquema(db);
-  semearDepartamentosPadrao(db);
-  semearAdminPadrao(db);
+    db.pragma("journal_mode = WAL");
+    db.pragma("foreign_keys = ON");
 
-  instancia = db;
-  return db;
+    criarEsquema(db);
+    semearDepartamentosPadrao(db);
+    semearAdminPadrao(db);
+
+    instancia = db;
+
+    return db;
+  } catch (erro) {
+    console.error("[ERRO SQLITE]", erro);
+    throw erro;
+  }
 }
