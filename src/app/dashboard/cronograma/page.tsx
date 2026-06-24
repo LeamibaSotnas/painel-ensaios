@@ -56,4 +56,11 @@ export default async function CronogramaPage() {
 
       <EnsaioGrid
         data={ensaios}
-      
+        departamentos={departamentos}
+        onAtualizarEnsaio={handleAtualizarEnsaio}
+        onAdicionarEnsaio={handleAdicionarEnsaio}
+        onRemoverEnsaio={handleRemoverEnsaio}
+      />
+    </div>
+  );
+}

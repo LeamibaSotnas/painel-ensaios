@@ -362,4 +362,86 @@ export function UsuariosTable({
                 <TableCell>
                   <Input
                     className="h-8"
-            
+                    type="email"
+                    placeholder="email@igreja.org"
+                    value={novoUsuarioDraft.email}
+                    onChange={(e) =>
+                      setNovoUsuarioDraft((d) => ({ ...d, email: e.target.value }))
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    className="h-8 w-32"
+                    type="password"
+                    placeholder="Senha"
+                    value={novoUsuarioDraft.senha}
+                    onChange={(e) =>
+                      setNovoUsuarioDraft((d) => ({ ...d, senha: e.target.value }))
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <SeletorRegra
+                    value={novoUsuarioDraft.regra}
+                    onChange={(regra) => setNovoUsuarioDraft((d) => ({ ...d, regra }))}
+                  />
+                </TableCell>
+                <TableCell>
+                  <SeletorDepartamento
+                    value={novoUsuarioDraft.departamentoId}
+                    onChange={(id) =>
+                      setNovoUsuarioDraft((d) => ({ ...d, departamentoId: id }))
+                    }
+                    departamentos={departamentos}
+                    disabled={novoUsuarioDraft.regra === "ADMIN"}
+                  />
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
+                      disabled={isSavingNovoUsuario}
+                      onClick={salvarNovoUsuario}
+                    >
+                      {isSavingNovoUsuario ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      disabled={isSavingNovoUsuario}
+                      onClick={() => setIsCriando(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {!isCriando && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-fit gap-2"
+          onClick={() => setIsCriando(true)}
+        >
+          <Plus className="h-4 w-4" />
+          Criar usuário
+        </Button>
+      )}
+    </div>
+  );
+}
+
+export default UsuariosTable;

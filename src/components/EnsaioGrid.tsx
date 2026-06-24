@@ -394,3 +394,179 @@ export function EnsaioGrid({
                       ) : (
                         ensaio.hora_fim.slice(0, 5)
                       )}
+                    </TableCell>
+                    <TableCell>
+                      {emEdicao ? (
+                        <SeletorDepartamento
+                          value={draft.departamento_id}
+                          onChange={(id) => setDraft((d) => ({ ...d, departamento_id: id }))}
+                          departamentos={departamentos}
+                        />
+                      ) : (
+                        <Badge variant="outline">{ensaio.departamento_nome}</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {emEdicao ? (
+                        <CamposExtras
+                          draft={draft}
+                          onChange={(valores) => setDraft((d) => ({ ...d, ...valores }))}
+                        />
+                      ) : (
+                        <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+                          {(ensaio.local || ensaio.responsavel) && (
+                            <span>
+                              {[ensaio.local, ensaio.responsavel].filter(Boolean).join(" · ")}
+                            </span>
+                          )}
+                          {ensaio.observacoes && <span>{ensaio.observacoes}</span>}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {emEdicao ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
+                            disabled={salvando}
+                            onClick={() => salvarEdicao(ensaio.id)}
+                          >
+                            {salvando ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            disabled={salvando}
+                            onClick={cancelarEdicao}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => iniciarEdicao(ensaio)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-600 hover:text-red-700"
+                            disabled={salvando}
+                            onClick={() => remover(ensaio.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+
+              {isAdding && (
+                <TableRow className="bg-muted/30">
+                  <TableCell>
+                    <Input
+                      type="date"
+                      className="h-8 w-36"
+                      value={novoDraft.data}
+                      onChange={(e) => setNovoDraft((d) => ({ ...d, data: e.target.value }))}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="time"
+                      className="h-8 w-24"
+                      value={novoDraft.hora_inicio}
+                      onChange={(e) =>
+                        setNovoDraft((d) => ({ ...d, hora_inicio: e.target.value }))
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="time"
+                      className="h-8 w-24"
+                      value={novoDraft.hora_fim}
+                      onChange={(e) =>
+                        setNovoDraft((d) => ({ ...d, hora_fim: e.target.value }))
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <SeletorDepartamento
+                      value={novoDraft.departamento_id}
+                      onChange={(id) => setNovoDraft((d) => ({ ...d, departamento_id: id }))}
+                      departamentos={departamentos}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <CamposExtras
+                      draft={novoDraft}
+                      onChange={(valores) => setNovoDraft((d) => ({ ...d, ...valores }))}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
+                        disabled={isSavingNovo}
+                        onClick={salvarNovo}
+                      >
+                        {isSavingNovo ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={isSavingNovo}
+                        onClick={() => setIsAdding(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {visao === "lista" && !isAdding && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-fit gap-2"
+          onClick={() => {
+            setIsAdding(true);
+            setNovoDraft(DRAFT_VAZIO(departamentos[0]?.id ?? ""));
+          }}
+        >
+          <Plus className="h-4 w-4" />
+          Agendar ensaio
+        </Button>
+      )}
+    </div>
+  );
+}
+
+export default EnsaioGrid;

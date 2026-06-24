@@ -48,4 +48,7 @@
   }
   body {
     @apply text-foreground;
-    background: line
+    background: linear-gradient(135deg, #f8fafc 0%, #f3f4f6 40%, #eef2ff 70%, #faf5ff 100%);
+    min-height: 100vh;
+  }
+}

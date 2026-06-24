@@ -46,3 +46,6 @@ export async function entrar(formData: FormData) {
 
 export async function sair() {
   const cookieStore = await cookies();
+  cookieStore.delete(NOME_COOKIE_SESSAO);
+  redirect("/");
+}

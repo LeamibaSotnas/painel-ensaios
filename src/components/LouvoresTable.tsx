@@ -553,4 +553,348 @@ export function LouvoresTable({
                     size="icon"
                     className="h-5 w-5"
                     disabled={ocupado}
-                    onClick={() => r
+                    onClick={() => reordenar(linha.id, "down")}
+                  >
+                    <ArrowDown className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: "acoes",
+        header: "",
+        cell: ({ row }) => {
+          const linha = row.original;
+          const emEdicao = editingRowId === linha.id;
+          const salvando = savingRowId === linha.id;
+
+          if (!editavel) return null;
+
+          if (emEdicao) {
+            return (
+              <div className="flex items-center justify-end gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
+                  disabled={salvando}
+                  onClick={() => salvarEdicao(linha.id)}
+                >
+                  {salvando ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={salvando}
+                  onClick={cancelarEdicao}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex items-center justify-end gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => iniciarEdicao(linha)}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-red-600 hover:text-red-700"
+                disabled={savingRowId === linha.id}
+                onClick={() => excluirLinha(linha.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        },
+      },
+    ],
+    [draft, editingRowId, savingRowId, editavel, expandedId, buscandoMetadados]
+  );
+
+  const table = useReactTable({
+    data: dadosFiltrados,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
+  return (
+    <div className="flex flex-col gap-3">
+      {erro && (
+        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {erro}
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por nome ou cantor..."
+            className="h-8 pl-8"
+          />
+        </div>
+        <select
+          value={filtroTom}
+          onChange={(e) => setFiltroTom(e.target.value)}
+          className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+        >
+          <option value="">Todos os tons</option>
+          {tonsDisponiveis.map((tom) => (
+            <option key={tom} value={tom}>
+              {tom}
+            </option>
+          ))}
+        </select>
+        <Button
+          variant={somenteFavoritos ? "secondary" : "outline"}
+          size="sm"
+          className="h-8 gap-1.5"
+          onClick={() => setSomenteFavoritos((v) => !v)}
+        >
+          <Star className={cn("h-3.5 w-3.5", somenteFavoritos && "fill-amber-400 text-amber-500")} />
+          Favoritos
+        </Button>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id} className="whitespace-nowrap">
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.length === 0 && !isAddingRow && (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="py-8 text-center text-muted-foreground"
+                >
+                  {data.length === 0
+                    ? `Nenhum louvor cadastrado para ${codigoPrefixo} ainda.`
+                    : "Nenhum louvor encontrado com esses filtros."}
+                </TableCell>
+              </TableRow>
+            )}
+
+            {table.getRowModel().rows.map((row) => {
+              const linha = row.original;
+              const expandido = expandedId === linha.id;
+              return (
+                <React.Fragment key={row.id}>
+                  <TableRow className={cn(editingRowId === linha.id && "bg-muted/40")}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                  {expandido && (
+                    <TableRow className="bg-muted/20">
+                      <TableCell colSpan={columns.length} className="space-y-2 py-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Cifra
+                            </span>
+                            <textarea
+                              className="min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-70"
+                              placeholder="Cole aqui a cifra ou um link para ela"
+                              value={detalhesDraft.cifra}
+                              disabled={!editavel}
+                              onChange={(e) =>
+                                setDetalhesDraft((d) => ({ ...d, cifra: e.target.value }))
+                              }
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Observações
+                            </span>
+                            <textarea
+                              className="min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-70"
+                              placeholder="Observações sobre o louvor"
+                              value={detalhesDraft.observacoes}
+                              disabled={!editavel}
+                              onChange={(e) =>
+                                setDetalhesDraft((d) => ({ ...d, observacoes: e.target.value }))
+                              }
+                            />
+                          </div>
+                        </div>
+                        {editavel && (
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setExpandedId(null)}
+                            >
+                              Fechar
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={savingDetalhes}
+                              onClick={() => salvarDetalhes(linha.id)}
+                            >
+                              {savingDetalhes ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                "Salvar"
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
+              );
+            })}
+
+            {isAddingRow && (
+              <TableRow className="bg-muted/30">
+                <TableCell />
+                <TableCell>
+                  <Badge variant="outline" className="font-mono text-muted-foreground">
+                    {codigoPrefixo}?
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Input
+                    autoFocus
+                    placeholder="Nome do louvor"
+                    className="h-8"
+                    value={newRowDraft.nome_louvor}
+                    onChange={(e) =>
+                      setNewRowDraft((d) => ({ ...d, nome_louvor: e.target.value }))
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    placeholder="Cantor, compositor ou banda/grupo"
+                    className="h-8"
+                    value={newRowDraft.cantor_banda}
+                    onChange={(e) =>
+                      setNewRowDraft((d) => ({ ...d, cantor_banda: e.target.value }))
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    placeholder="Tom"
+                    className="h-8 w-24"
+                    value={newRowDraft.tonalidade}
+                    onChange={(e) =>
+                      setNewRowDraft((d) => ({ ...d, tonalidade: e.target.value }))
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      placeholder="https://youtube.com/..."
+                      className="h-8 w-44"
+                      value={newRowDraft.link_youtube ?? ""}
+                      onChange={(e) =>
+                        setNewRowDraft((d) => ({ ...d, link_youtube: e.target.value }))
+                      }
+                      onBlur={(e) =>
+                        buscarMetadados(e.target.value, (m) =>
+                          setNewRowDraft((d) => ({
+                            ...d,
+                            youtube_titulo: m.titulo || d.youtube_titulo,
+                            youtube_thumbnail: m.thumbnail,
+                          }))
+                        )
+                      }
+                    />
+                    {buscandoMetadados && (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell />
+                <TableCell>
+                  <span className="tabular-nums">{newRowDraft.ordem_execucao}</span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
+                      disabled={isSavingNewRow}
+                      onClick={salvarNovaLinha}
+                    >
+                      {isSavingNewRow ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      disabled={isSavingNewRow}
+                      onClick={() => setIsAddingRow(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {editavel && !isAddingRow && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-fit gap-2"
+          onClick={() => {
+            setIsAddingRow(true);
+            setNewRowDraft({ ...DRAFT_VAZIO, ordem_execucao: data.length + 1 });
+          }}
+        >
+          <Plus className="h-4 w-4" />
+          Adicionar louvor
+        </Button>
+      )}
+    </div>
+  );
+}
+
+export default LouvoresTable;

@@ -67,4 +67,20 @@ export default async function UsuariosPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-semibold tr
+        <h1 className="text-2xl font-semibold tracking-tight">Usuários</h1>
+        <p className="text-sm text-muted-foreground">
+          Gerencie os usuários que têm acesso ao painel.
+        </p>
+      </header>
+
+      <UsuariosTable
+        data={usuarios}
+        departamentos={departamentos}
+        usuarioAtualId={usuarioAtualId}
+        onAtualizarUsuario={handleAtualizarUsuario}
+        onRemoverUsuario={handleRemoverUsuario}
+        onCriarUsuario={handleCriarUsuario}
+      />
+    </div>
+  );
+}

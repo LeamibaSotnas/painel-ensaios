@@ -45,4 +45,14 @@ export default async function VisaoGeralPage() {
                 </span>
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  {
+                  {ensaio.hora_inicio.slice(0, 5)} – {ensaio.hora_fim.slice(0, 5)}
+                </span>
+              </div>
+              <Badge variant="secondary">{ensaio.departamento_nome}</Badge>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

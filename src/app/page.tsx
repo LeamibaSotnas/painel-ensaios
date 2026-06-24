@@ -58,3 +58,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </Button>
         </form>
       </div>
+    </main>
+  );
+}

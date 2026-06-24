@@ -3,7 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import type { RegraUsuario } from "@/types/database.types";
 
 export const NOME_COOKIE_SESSAO = "painel_session";
-const DURACAO_SESSAO_SEGUNDOS = 60 * 60 * 24 * 7; // 7 dias
+export const DURACAO_COOKIE_SESSAO_SEGUNDOS = 60 * 60 * 24 * 7; // 7 dias
 
 export interface PayloadSessao {
   id: string;
@@ -26,7 +26,7 @@ export async function criarTokenSessao(payload: PayloadSessao): Promise<string> 
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(`${DURACAO_SESSAO_SEGUNDOS}s`)
+    .setExpirationTime(`${DURACAO_COOKIE_SESSAO_SEGUNDOS}s`)
     .sign(obterSegredo());
 }
 
@@ -39,4 +39,12 @@ export async function verificarTokenSessao(token: string): Promise<PayloadSessao
     }
     const departamentoId =
       typeof payload.departamentoId === "string" ? payload.departamentoId : null;
-    return { id: payload.id, regra
+    return {
+      id: payload.id,
+      regra: payload.regra as RegraUsuario,
+      departamentoId,
+    };
+  } catch {
+    return null;
+  }
+}

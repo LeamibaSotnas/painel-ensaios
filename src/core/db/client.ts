@@ -94,4 +94,54 @@ async function aplicarMigracoesDeColunas() {
 }
 
 async function semearDepartamentosPadrao() {
-  const { rows } = await sql<{ total
+  const { rows } = await sql<{ total: number }>`SELECT COUNT(*)::int as total FROM departamentos`;
+  if (rows[0]?.total > 0) return;
+
+  const padroes = [
+    { nome: "Jovens", slug: "jovens", codigo_prefixo: "SA" },
+    { nome: "Adolescentes", slug: "adolescentes", codigo_prefixo: "AD" },
+    { nome: "Crianças", slug: "criancas", codigo_prefixo: "JD" },
+    { nome: "Irmãs", slug: "irmas", codigo_prefixo: "RS" },
+  ];
+
+  for (const dep of padroes) {
+    await sql`
+      INSERT INTO departamentos (id, nome, slug, codigo_prefixo)
+      VALUES (${crypto.randomUUID()}, ${dep.nome}, ${dep.slug}, ${dep.codigo_prefixo})
+      ON CONFLICT (slug) DO NOTHING
+    `;
+  }
+}
+
+async function semearAdminPadrao() {
+  const { rows } = await sql<{ total: number }>`SELECT COUNT(*)::int as total FROM usuarios`;
+  if (rows[0]?.total > 0) return;
+
+  const email = process.env.ADMIN_PADRAO_EMAIL ?? "admin@local.app";
+  const senha = process.env.ADMIN_PADRAO_SENHA ?? "admin123";
+  const senhaHash = hashSenha(senha);
+
+  await sql`
+    INSERT INTO usuarios (id, nome, email, senha_hash, regra, departamento_id)
+    VALUES (${crypto.randomUUID()}, 'Administrador', ${email}, ${senhaHash}, 'ADMIN', NULL)
+    ON CONFLICT (email) DO NOTHING
+  `;
+}
+
+async function inicializarBanco() {
+  await criarEsquema();
+  await aplicarMigracoesDeColunas();
+  await semearDepartamentosPadrao();
+  await semearAdminPadrao();
+}
+
+let esquemaProntoPromise: Promise<void> | null = null;
+
+/** Garante que o schema/seed já foi aplicado e retorna o cliente `sql` do @vercel/postgres. */
+export async function getDb() {
+  if (!esquemaProntoPromise) {
+    esquemaProntoPromise = inicializarBanco();
+  }
+  await esquemaProntoPromise;
+  return sql;
+}

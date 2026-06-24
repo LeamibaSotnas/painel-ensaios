@@ -82,4 +82,9 @@ export function DashboardSidebar({ usuario }: { usuario: Usuario }) {
           className="w-full justify-start gap-2 text-muted-foreground"
         >
           <LogOut className="h-4 w-4" />
-          Sa
+          Sair
+        </Button>
+      </form>
+    </aside>
+  );
+}
