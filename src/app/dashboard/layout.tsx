@@ -24,4 +24,16 @@ export default async function DashboardLayout({
       <DashboardSidebar usuario={usuario} />
       <div className="flex flex-1 flex-col">
         <header className="flex items-center justify-end border-b border-white/60 bg-white/50 px-6 py-4 backdrop-blur-sm">
-     
+          <span className="text-sm text-muted-foreground">
+            {usuario.nome} · {usuario.regra}
+          </span>
+        </header>
+        <main className="flex-1 p-6">
+          <div className="mx-auto max-w-6xl rounded-2xl bg-white/80 p-6 shadow-sm backdrop-blur-sm">
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

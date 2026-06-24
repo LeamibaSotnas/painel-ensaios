@@ -98,4 +98,40 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
     revalidatePath(caminhoAtual);
   }
 
-  async function handleAtual
+  async function handleAtualizarDetalhes(id: string, valores: LouvorDetalhesEditavel) {
+    "use server";
+    await atualizarDetalhesLouvor(id, valores);
+    revalidatePath(caminhoAtual);
+  }
+
+  async function handleBuscarMetadadosYoutube(url: string) {
+    "use server";
+    return buscarMetadadosYoutube(url);
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight">{departamento.nome}</h1>
+        <p className="text-sm text-muted-foreground">
+          Planilha de louvores — código {departamento.codigo_prefixo}1, {departamento.codigo_prefixo}2...
+        </p>
+      </header>
+
+      <LouvoresTable
+        data={louvores}
+        departamentoId={departamentoId}
+        codigoPrefixo={codigoPrefixoDepartamento}
+        editavel={podeEditar}
+        onAtualizarLinha={handleAtualizarLinha}
+        onAdicionarLinha={handleAdicionarLinha}
+        onRemoverLinha={handleRemoverLinha}
+        onReordenarLinha={handleReordenarLinha}
+        onAlternarFavorito={handleAlternarFavorito}
+        onMarcarExecutado={handleMarcarExecutado}
+        onAtualizarDetalhes={handleAtualizarDetalhes}
+        onBuscarMetadadosYoutube={handleBuscarMetadadosYoutube}
+      />
+    </div>
+  );
+}

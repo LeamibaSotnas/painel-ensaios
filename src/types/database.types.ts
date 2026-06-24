@@ -59,4 +59,53 @@ export interface EnsaioGradeComDepartamento extends EnsaioGrade {
 
 /**
  * Linha da planilha de louvores. Representa exatamente uma linha
- * edit
+ * editável na tabela `louvores_planilha`.
+ */
+export interface LouvorPlanilha {
+  id: string;
+  codigo_sequencial: string; // Ex: SA1, AD2
+  departamento_id: string;
+  nome_louvor: string;
+  cantor_banda: string;
+  tonalidade: string; // Ex: G, Am, C#m
+  link_youtube: string | null;
+  /** Título capturado automaticamente via oEmbed do YouTube. */
+  youtube_titulo: string | null;
+  /** URL da miniatura capturada automaticamente via oEmbed do YouTube. */
+  youtube_thumbnail: string | null;
+  /** Cifra (texto livre ou link para a cifra). */
+  cifra: string;
+  /** Observações livres sobre o louvor. */
+  observacoes: string;
+  /** Marcado como favorito pelo departamento. */
+  favorito: boolean;
+  /** Data (ISO) da última vez que o louvor foi executado/ensaiado. */
+  ultima_execucao: string | null;
+  ordem_execucao: number;
+}
+
+/**
+ * Payload aceito ao criar uma nova linha. O código sequencial e o id
+ * são derivados/gerados no servidor (ou via code-generator.ts),
+ * por isso não fazem parte do input do usuário.
+ */
+export type NovoLouvorInput = Pick<
+  LouvorPlanilha,
+  "departamento_id" | "nome_louvor" | "cantor_banda" | "tonalidade" | "link_youtube" | "ordem_execucao"
+> &
+  Partial<Pick<LouvorPlanilha, "youtube_titulo" | "youtube_thumbnail">>;
+
+/** Campos que podem ser editados inline na planilha. */
+export type LouvorEditavel = Pick<
+  LouvorPlanilha,
+  | "nome_louvor"
+  | "cantor_banda"
+  | "tonalidade"
+  | "link_youtube"
+  | "youtube_titulo"
+  | "youtube_thumbnail"
+  | "ordem_execucao"
+>;
+
+/** Campos de cifra/observações, editados num painel expansível por linha. */
+export type LouvorDetalhesEditavel = Pick<LouvorPlanilha, "cifra" | "observacoes">;
