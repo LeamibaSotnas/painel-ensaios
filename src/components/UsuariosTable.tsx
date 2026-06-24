@@ -15,19 +15,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import type { RegraUsuario, Usuario } from "@/types/database.types";
+import type { Departamento, RegraUsuario, UsuarioComDepartamento } from "@/types/database.types";
 
-export type UsuarioEditavel = Pick<Usuario, "nome" | "regra">;
+export interface UsuarioEditavel {
+  nome: string;
+  regra: RegraUsuario;
+  departamentoId: string | null;
+}
 
 export interface NovoUsuarioInput {
   nome: string;
   email: string;
   senha: string;
   regra: RegraUsuario;
+  departamentoId: string | null;
 }
 
 export interface UsuariosTableProps {
-  data: Usuario[];
+  data: UsuarioComDepartamento[];
+  departamentos: Departamento[];
   /** id do usuário logado — evita que ele remova/rebaixe a própria conta. */
   usuarioAtualId: string;
   onAtualizarUsuario: (id: string, valores: UsuarioEditavel) => Promise<void>;
@@ -65,8 +71,41 @@ function SeletorRegra({
   );
 }
 
+function SeletorDepartamento({
+  value,
+  onChange,
+  departamentos,
+  disabled,
+}: {
+  value: string | null;
+  onChange: (id: string | null) => void;
+  departamentos: Departamento[];
+  disabled?: boolean;
+}) {
+  if (disabled) {
+    return <span className="text-xs text-muted-foreground">Todos os departamentos</span>;
+  }
+  return (
+    <select
+      value={value ?? ""}
+      onChange={(e) => onChange(e.target.value || null)}
+      className="h-8 w-36 rounded-md border border-input bg-background px-2 text-sm"
+    >
+      <option value="" disabled>
+        Selecione...
+      </option>
+      {departamentos.map((dep) => (
+        <option key={dep.id} value={dep.id}>
+          {dep.nome}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export function UsuariosTable({
   data,
+  departamentos,
   usuarioAtualId,
   onAtualizarUsuario,
   onRemoverUsuario,
@@ -76,6 +115,7 @@ export function UsuariosTable({
   const [draft, setDraft] = React.useState<UsuarioEditavel>({
     nome: "",
     regra: "MUSICOS",
+    departamentoId: departamentos[0]?.id ?? null,
   });
   const [savingId, setSavingId] = React.useState<string | null>(null);
   const [isCriando, setIsCriando] = React.useState(false);
@@ -84,14 +124,19 @@ export function UsuariosTable({
     email: "",
     senha: "",
     regra: "MUSICOS",
+    departamentoId: departamentos[0]?.id ?? null,
   });
   const [isSavingNovoUsuario, setIsSavingNovoUsuario] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
 
-  function iniciarEdicao(usuario: Usuario) {
+  function iniciarEdicao(usuario: UsuarioComDepartamento) {
     setErro(null);
     setEditingId(usuario.id);
-    setDraft({ nome: usuario.nome, regra: usuario.regra });
+    setDraft({
+      nome: usuario.nome,
+      regra: usuario.regra,
+      departamentoId: usuario.departamento_id,
+    });
   }
 
   function cancelarEdicao() {
@@ -99,10 +144,17 @@ export function UsuariosTable({
   }
 
   async function salvarEdicao(id: string) {
+    if (draft.regra !== "ADMIN" && !draft.departamentoId) {
+      setErro("Selecione um departamento para esse usuário.");
+      return;
+    }
     setSavingId(id);
     setErro(null);
     try {
-      await onAtualizarUsuario(id, draft);
+      await onAtualizarUsuario(id, {
+        ...draft,
+        departamentoId: draft.regra === "ADMIN" ? null : draft.departamentoId,
+      });
       setEditingId(null);
     } catch {
       setErro("Não foi possível salvar esse usuário.");
@@ -136,6 +188,10 @@ export function UsuariosTable({
       setErro("A senha deve ter ao menos 6 caracteres.");
       return;
     }
+    if (novoUsuarioDraft.regra !== "ADMIN" && !novoUsuarioDraft.departamentoId) {
+      setErro("Selecione um departamento para esse usuário.");
+      return;
+    }
     setIsSavingNovoUsuario(true);
     setErro(null);
     try {
@@ -144,9 +200,17 @@ export function UsuariosTable({
         email: novoUsuarioDraft.email.trim(),
         senha: novoUsuarioDraft.senha,
         regra: novoUsuarioDraft.regra,
+        departamentoId:
+          novoUsuarioDraft.regra === "ADMIN" ? null : novoUsuarioDraft.departamentoId,
       });
       setIsCriando(false);
-      setNovoUsuarioDraft({ nome: "", email: "", senha: "", regra: "MUSICOS" });
+      setNovoUsuarioDraft({
+        nome: "",
+        email: "",
+        senha: "",
+        regra: "MUSICOS",
+        departamentoId: departamentos[0]?.id ?? null,
+      });
     } catch {
       setErro("Não foi possível criar esse usuário. Verifique se o e-mail já está em uso.");
     } finally {
@@ -170,6 +234,7 @@ export function UsuariosTable({
               <TableHead>E-mail</TableHead>
               <TableHead>Senha</TableHead>
               <TableHead>Regra</TableHead>
+              <TableHead>Departamento</TableHead>
               <TableHead className="text-right" />
             </TableRow>
           </TableHeader>
@@ -210,6 +275,22 @@ export function UsuariosTable({
                       <Badge variant={VARIANTE_BADGE_REGRA[usuario.regra]}>
                         {usuario.regra}
                       </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {emEdicao ? (
+                      <SeletorDepartamento
+                        value={draft.departamentoId}
+                        onChange={(id) => setDraft((d) => ({ ...d, departamentoId: id }))}
+                        departamentos={departamentos}
+                        disabled={draft.regra === "ADMIN"}
+                      />
+                    ) : (
+                      <span className="text-sm text-muted-foreground">
+                        {usuario.regra === "ADMIN"
+                          ? "Todos"
+                          : usuario.departamento_nome ?? "—"}
+                      </span>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
@@ -281,76 +362,4 @@ export function UsuariosTable({
                 <TableCell>
                   <Input
                     className="h-8"
-                    type="email"
-                    placeholder="email@igreja.org"
-                    value={novoUsuarioDraft.email}
-                    onChange={(e) =>
-                      setNovoUsuarioDraft((d) => ({ ...d, email: e.target.value }))
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    className="h-8 w-32"
-                    type="password"
-                    placeholder="Senha"
-                    value={novoUsuarioDraft.senha}
-                    onChange={(e) =>
-                      setNovoUsuarioDraft((d) => ({ ...d, senha: e.target.value }))
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <SeletorRegra
-                    value={novoUsuarioDraft.regra}
-                    onChange={(regra) => setNovoUsuarioDraft((d) => ({ ...d, regra }))}
-                  />
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
-                      disabled={isSavingNovoUsuario}
-                      onClick={salvarNovoUsuario}
-                    >
-                      {isSavingNovoUsuario ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Check className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      disabled={isSavingNovoUsuario}
-                      onClick={() => setIsCriando(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {!isCriando && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit gap-2"
-          onClick={() => setIsCriando(true)}
-        >
-          <Plus className="h-4 w-4" />
-          Criar usuário
-        </Button>
-      )}
-    </div>
-  );
-}
-
-export default UsuariosTable;
+            

@@ -12,11 +12,17 @@ import {
 import {
   ArrowDown,
   ArrowUp,
+  Calendar,
   Check,
-  CirclePlay,
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
   Loader2,
+  Music2,
   Pencil,
   Plus,
+  Search,
+  Star,
   Trash2,
   X,
 } from "lucide-react";
@@ -34,6 +40,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type {
+  LouvorDetalhesEditavel,
   LouvorEditavel,
   LouvorPlanilha,
   NovoLouvorInput,
@@ -49,16 +56,23 @@ export interface LouvoresTableProps {
   /** Quando falso, a planilha fica somente leitura (ex.: regra MUSICOS). */
   editavel?: boolean;
   /** Persiste a edição de campos de uma linha existente. */
-  onAtualizarLinha: (
-    id: string,
-    valores: Partial<LouvorEditavel>
-  ) => Promise<void>;
+  onAtualizarLinha: (id: string, valores: LouvorEditavel) => Promise<void>;
   /** Cria uma nova linha. O código sequencial é gerado pelo chamador. */
   onAdicionarLinha: (valores: NovoLouvorInput) => Promise<void>;
   /** Remove uma linha da planilha. */
   onRemoverLinha: (id: string) => Promise<void>;
   /** Troca a ordem_execucao entre a linha e a vizinha (cima/baixo). */
   onReordenarLinha: (id: string, direcao: "up" | "down") => Promise<void>;
+  /** Marca/desmarca um louvor como favorito. */
+  onAlternarFavorito: (id: string, favorito: boolean) => Promise<void>;
+  /** Registra a data de hoje como última execução do louvor. */
+  onMarcarExecutado: (id: string) => Promise<void>;
+  /** Salva cifra/observações (painel expansível por linha). */
+  onAtualizarDetalhes: (id: string, valores: LouvorDetalhesEditavel) => Promise<void>;
+  /** Busca título + miniatura de um link do YouTube (oEmbed, sem download). */
+  onBuscarMetadadosYoutube: (
+    url: string
+  ) => Promise<{ titulo: string; thumbnail: string } | null>;
 }
 
 type DraftLouvor = LouvorEditavel;
@@ -68,6 +82,8 @@ const DRAFT_VAZIO: DraftLouvor = {
   cantor_banda: "",
   tonalidade: "",
   link_youtube: "",
+  youtube_titulo: null,
+  youtube_thumbnail: null,
   ordem_execucao: 0,
 };
 
@@ -76,6 +92,15 @@ function normalizarLinkYoutube(link: string | null): string | null {
   const trimmed = link.trim();
   if (!trimmed) return null;
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function formatarDataCurta(data: string | null): string {
+  if (!data) return "—";
+  return new Date(`${data}T00:00:00`).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  });
 }
 
 export function LouvoresTable({
@@ -87,6 +112,10 @@ export function LouvoresTable({
   onAdicionarLinha,
   onRemoverLinha,
   onReordenarLinha,
+  onAlternarFavorito,
+  onMarcarExecutado,
+  onAtualizarDetalhes,
+  onBuscarMetadadosYoutube,
 }: LouvoresTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "ordem_execucao", desc: false },
@@ -101,6 +130,41 @@ export function LouvoresTable({
   });
   const [isSavingNewRow, setIsSavingNewRow] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
+  const [buscandoMetadados, setBuscandoMetadados] = React.useState(false);
+
+  // --- filtros ---------------------------------------------------------
+  const [busca, setBusca] = React.useState("");
+  const [filtroTom, setFiltroTom] = React.useState("");
+  const [somenteFavoritos, setSomenteFavoritos] = React.useState(false);
+
+  // --- painel expansível (cifra/observações) ----------------------------
+  const [expandedId, setExpandedId] = React.useState<string | null>(null);
+  const [detalhesDraft, setDetalhesDraft] = React.useState<LouvorDetalhesEditavel>({
+    cifra: "",
+    observacoes: "",
+  });
+  const [savingDetalhes, setSavingDetalhes] = React.useState(false);
+
+  const tonsDisponiveis = React.useMemo(() => {
+    const tons = new Set<string>();
+    for (const linha of data) {
+      if (linha.tonalidade) tons.add(linha.tonalidade);
+    }
+    return Array.from(tons).sort();
+  }, [data]);
+
+  const dadosFiltrados = React.useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return data.filter((linha) => {
+      if (somenteFavoritos && !linha.favorito) return false;
+      if (filtroTom && linha.tonalidade !== filtroTom) return false;
+      if (termo) {
+        const alvo = `${linha.nome_louvor} ${linha.cantor_banda}`.toLowerCase();
+        if (!alvo.includes(termo)) return false;
+      }
+      return true;
+    });
+  }, [data, busca, filtroTom, somenteFavoritos]);
 
   function iniciarEdicao(linha: LouvorPlanilha) {
     setErro(null);
@@ -110,6 +174,8 @@ export function LouvoresTable({
       cantor_banda: linha.cantor_banda,
       tonalidade: linha.tonalidade,
       link_youtube: linha.link_youtube,
+      youtube_titulo: linha.youtube_titulo,
+      youtube_thumbnail: linha.youtube_thumbnail,
       ordem_execucao: linha.ordem_execucao,
     });
   }
@@ -128,6 +194,9 @@ export function LouvoresTable({
         cantor_banda: draft.cantor_banda.trim(),
         tonalidade: draft.tonalidade.trim(),
         link_youtube: normalizarLinkYoutube(draft.link_youtube),
+        youtube_titulo: draft.youtube_titulo,
+        youtube_thumbnail: draft.youtube_thumbnail,
+        ordem_execucao: draft.ordem_execucao,
       });
       setEditingRowId(null);
     } catch {
@@ -161,6 +230,62 @@ export function LouvoresTable({
     }
   }
 
+  async function alternarFavorito(linha: LouvorPlanilha) {
+    setErro(null);
+    try {
+      await onAlternarFavorito(linha.id, !linha.favorito);
+    } catch {
+      setErro("Não foi possível atualizar o favorito.");
+    }
+  }
+
+  async function marcarExecutado(id: string) {
+    setSavingRowId(id);
+    setErro(null);
+    try {
+      await onMarcarExecutado(id);
+    } catch {
+      setErro("Não foi possível registrar a execução.");
+    } finally {
+      setSavingRowId(null);
+    }
+  }
+
+  function alternarExpandido(linha: LouvorPlanilha) {
+    if (expandedId === linha.id) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(linha.id);
+    setDetalhesDraft({ cifra: linha.cifra, observacoes: linha.observacoes });
+  }
+
+  async function salvarDetalhes(id: string) {
+    setSavingDetalhes(true);
+    setErro(null);
+    try {
+      await onAtualizarDetalhes(id, detalhesDraft);
+    } catch {
+      setErro("Não foi possível salvar a cifra/observações.");
+    } finally {
+      setSavingDetalhes(false);
+    }
+  }
+
+  async function buscarMetadados(link: string, aplicar: (m: { titulo: string; thumbnail: string }) => void) {
+    const linkNormalizado = normalizarLinkYoutube(link);
+    if (!linkNormalizado) return;
+    setBuscandoMetadados(true);
+    try {
+      const metadados = await onBuscarMetadadosYoutube(linkNormalizado);
+      if (metadados) aplicar(metadados);
+    } catch {
+      // captura de metadados é apenas um complemento — falha silenciosa
+    } finally {
+      setBuscandoMetadados(false);
+    }
+  }
+
   async function salvarNovaLinha() {
     if (!newRowDraft.nome_louvor.trim()) {
       setErro("Informe o nome do louvor antes de salvar.");
@@ -175,6 +300,8 @@ export function LouvoresTable({
         cantor_banda: newRowDraft.cantor_banda.trim(),
         tonalidade: newRowDraft.tonalidade.trim(),
         link_youtube: normalizarLinkYoutube(newRowDraft.link_youtube),
+        youtube_titulo: newRowDraft.youtube_titulo,
+        youtube_thumbnail: newRowDraft.youtube_thumbnail,
         ordem_execucao: newRowDraft.ordem_execucao,
       });
       setIsAddingRow(false);
@@ -186,8 +313,74 @@ export function LouvoresTable({
     }
   }
 
+  function CartaoYoutube({ linha }: { linha: LouvorPlanilha }) {
+    const link = normalizarLinkYoutube(linha.link_youtube);
+    if (!link) {
+      return <span className="text-xs text-muted-foreground/60">Sem link</span>;
+    }
+    if (!linha.youtube_thumbnail) {
+      return (
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-red-600 hover:underline"
+        >
+          <Music2 className="h-3.5 w-3.5" />
+          Abrir no YouTube
+        </a>
+      );
+    }
+    return (
+      <a
+        href={link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group flex items-center gap-2 rounded-md"
+        title={linha.youtube_titulo ?? "Abrir no YouTube"}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={linha.youtube_thumbnail}
+          alt=""
+          className="h-9 w-16 rounded-sm object-cover"
+        />
+        <span className="flex max-w-32 flex-col">
+          <span className="truncate text-xs font-medium group-hover:underline">
+            {linha.youtube_titulo || "Vídeo"}
+          </span>
+          <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+            Abrir <ExternalLink className="h-2.5 w-2.5" />
+          </span>
+        </span>
+      </a>
+    );
+  }
+
   const columns = React.useMemo<ColumnDef<LouvorPlanilha>[]>(
     () => [
+      {
+        id: "favorito",
+        header: "",
+        cell: ({ row }) => {
+          const linha = row.original;
+          return (
+            <button
+              type="button"
+              onClick={() => alternarFavorito(linha)}
+              className="text-muted-foreground/50 transition-colors hover:text-amber-500"
+              title={linha.favorito ? "Remover dos favoritos" : "Marcar como favorito"}
+            >
+              <Star
+                className={cn(
+                  "h-4 w-4",
+                  linha.favorito && "fill-amber-400 text-amber-500"
+                )}
+              />
+            </button>
+          );
+        },
+      },
       {
         accessorKey: "codigo_sequencial",
         header: "Código",
@@ -203,15 +396,27 @@ export function LouvoresTable({
         cell: ({ row }) => {
           const linha = row.original;
           const emEdicao = editingRowId === linha.id;
+          const expandido = expandedId === linha.id;
           if (!emEdicao) {
-            return <span className="font-medium">{linha.nome_louvor}</span>;
+            return (
+              <button
+                type="button"
+                onClick={() => alternarExpandido(linha)}
+                className="flex items-center gap-1.5 text-left font-medium hover:underline"
+              >
+                {expandido ? (
+                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                )}
+                {linha.nome_louvor}
+              </button>
+            );
           }
           return (
             <Input
               value={draft.nome_louvor}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, nome_louvor: e.target.value }))
-              }
+              onChange={(e) => setDraft((d) => ({ ...d, nome_louvor: e.target.value }))}
               placeholder="Nome do louvor"
               className="h-8"
               autoFocus
@@ -227,17 +432,13 @@ export function LouvoresTable({
           const emEdicao = editingRowId === linha.id;
           if (!emEdicao) {
             return (
-              <span className="text-muted-foreground">
-                {linha.cantor_banda || "—"}
-              </span>
+              <span className="text-muted-foreground">{linha.cantor_banda || "—"}</span>
             );
           }
           return (
             <Input
               value={draft.cantor_banda}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, cantor_banda: e.target.value }))
-              }
+              onChange={(e) => setDraft((d) => ({ ...d, cantor_banda: e.target.value }))}
               placeholder="Cantor, compositor ou banda/grupo"
               className="h-8"
             />
@@ -260,9 +461,7 @@ export function LouvoresTable({
           return (
             <Input
               value={draft.tonalidade}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, tonalidade: e.target.value }))
-              }
+              onChange={(e) => setDraft((d) => ({ ...d, tonalidade: e.target.value }))}
               placeholder="Ex: G, Am, C#m"
               className="h-8 w-24"
             />
@@ -276,32 +475,56 @@ export function LouvoresTable({
           const linha = row.original;
           const emEdicao = editingRowId === linha.id;
           if (!emEdicao) {
-            const link = normalizarLinkYoutube(linha.link_youtube);
-            return (
-              <Button
-                variant="ghost"
-                size="icon"
-                disabled={!link}
-                className={cn(
-                  "h-8 w-8",
-                  link ? "text-red-600 hover:text-red-700" : "text-muted-foreground/40"
-                )}
-                onClick={() => link && window.open(link, "_blank", "noopener,noreferrer")}
-                title={link ?? "Sem link cadastrado"}
-              >
-                <CirclePlay className="h-4 w-4" />
-              </Button>
-            );
+            return <CartaoYoutube linha={linha} />;
           }
           return (
-            <Input
-              value={draft.link_youtube ?? ""}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, link_youtube: e.target.value }))
-              }
-              placeholder="https://youtube.com/..."
-              className="h-8 w-44"
-            />
+            <div className="flex items-center gap-1">
+              <Input
+                value={draft.link_youtube ?? ""}
+                onChange={(e) => setDraft((d) => ({ ...d, link_youtube: e.target.value }))}
+                onBlur={(e) =>
+                  buscarMetadados(e.target.value, (m) =>
+                    setDraft((d) => ({
+                      ...d,
+                      youtube_titulo: m.titulo || d.youtube_titulo,
+                      youtube_thumbnail: m.thumbnail,
+                    }))
+                  )
+                }
+                placeholder="https://youtube.com/..."
+                className="h-8 w-44"
+              />
+              {buscandoMetadados && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "ultima_execucao",
+        header: "Última execução",
+        cell: ({ row }) => {
+          const linha = row.original;
+          const ocupado = savingRowId === linha.id;
+          return (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">
+                {formatarDataCurta(linha.ultima_execucao)}
+              </span>
+              {editavel && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  disabled={ocupado}
+                  title="Marcar como executado hoje"
+                  onClick={() => marcarExecutado(linha.id)}
+                >
+                  <Calendar className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
           );
         },
       },
@@ -313,9 +536,7 @@ export function LouvoresTable({
           const ocupado = savingRowId === linha.id;
           return (
             <div className="flex items-center gap-1">
-              <span className="w-5 text-center tabular-nums">
-                {linha.ordem_execucao}
-              </span>
+              <span className="w-5 text-center tabular-nums">{linha.ordem_execucao}</span>
               {editavel && (
                 <div className="flex flex-col">
                   <Button
@@ -332,238 +553,4 @@ export function LouvoresTable({
                     size="icon"
                     className="h-5 w-5"
                     disabled={ocupado}
-                    onClick={() => reordenar(linha.id, "down")}
-                  >
-                    <ArrowDown className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          );
-        },
-      },
-      {
-        id: "acoes",
-        header: "",
-        cell: ({ row }) => {
-          const linha = row.original;
-          const emEdicao = editingRowId === linha.id;
-          const salvando = savingRowId === linha.id;
-
-          if (!editavel) return null;
-
-          if (emEdicao) {
-            return (
-              <div className="flex items-center justify-end gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
-                  disabled={salvando}
-                  onClick={() => salvarEdicao(linha.id)}
-                >
-                  {salvando ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Check className="h-4 w-4" />
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={salvando}
-                  onClick={cancelarEdicao}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            );
-          }
-
-          return (
-            <div className="flex items-center justify-end gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => iniciarEdicao(linha)}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-red-600 hover:text-red-700"
-                disabled={savingRowId === linha.id}
-                onClick={() => excluirLinha(linha.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          );
-        },
-      },
-    ],
-    [draft, editingRowId, savingRowId, editavel]
-  );
-
-  const table = useReactTable({
-    data,
-    columns,
-    state: { sorting },
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-  });
-
-  return (
-    <div className="flex flex-col gap-3">
-      {erro && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {erro}
-        </p>
-      )}
-
-      <div className="overflow-x-auto rounded-lg border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="whitespace-nowrap">
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length === 0 && !isAddingRow && (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="py-8 text-center text-muted-foreground"
-                >
-                  Nenhum louvor cadastrado para {codigoPrefixo} ainda.
-                </TableCell>
-              </TableRow>
-            )}
-
-            {table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                className={cn(
-                  editingRowId === row.original.id && "bg-muted/40"
-                )}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-
-            {isAddingRow && (
-              <TableRow className="bg-muted/30">
-                <TableCell>
-                  <Badge variant="outline" className="font-mono text-muted-foreground">
-                    {codigoPrefixo}?
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Input
-                    autoFocus
-                    placeholder="Nome do louvor"
-                    className="h-8"
-                    value={newRowDraft.nome_louvor}
-                    onChange={(e) =>
-                      setNewRowDraft((d) => ({ ...d, nome_louvor: e.target.value }))
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    placeholder="Cantor, compositor ou banda/grupo"
-                    className="h-8"
-                    value={newRowDraft.cantor_banda}
-                    onChange={(e) =>
-                      setNewRowDraft((d) => ({ ...d, cantor_banda: e.target.value }))
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    placeholder="Tom"
-                    className="h-8 w-24"
-                    value={newRowDraft.tonalidade}
-                    onChange={(e) =>
-                      setNewRowDraft((d) => ({ ...d, tonalidade: e.target.value }))
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    placeholder="https://youtube.com/..."
-                    className="h-8 w-44"
-                    value={newRowDraft.link_youtube ?? ""}
-                    onChange={(e) =>
-                      setNewRowDraft((d) => ({ ...d, link_youtube: e.target.value }))
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <span className="tabular-nums">{newRowDraft.ordem_execucao}</span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
-                      disabled={isSavingNewRow}
-                      onClick={salvarNovaLinha}
-                    >
-                      {isSavingNewRow ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Check className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      disabled={isSavingNewRow}
-                      onClick={() => setIsAddingRow(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {editavel && !isAddingRow && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit gap-2"
-          onClick={() => {
-            setIsAddingRow(true);
-            setNewRowDraft({ ...DRAFT_VAZIO, ordem_execucao: data.length + 1 });
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          Adicionar louvor
-        </Button>
-      )}
-    </div>
-  );
-}
-
-export default LouvoresTable;
+                    onClick={() => r

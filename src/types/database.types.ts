@@ -1,9 +1,9 @@
 /**
- * Tipos do banco de dados local (SQLite).
+ * Tipos do banco de dados (Postgres na nuvem, via @vercel/postgres).
  *
- * O app é de uso local/único por organização — não depende de nenhum
- * serviço em nuvem. Os dados ficam em um arquivo SQLite (`data/painel.db`),
- * criado e migrado automaticamente em `src/core/db/client.ts`.
+ * O banco fica hospedado na nuvem (Vercel Postgres / Neon), compartilhado
+ * por todos os usuários do app — schema, migrações de coluna e seed inicial
+ * são criados e aplicados automaticamente em `src/core/db/client.ts`.
  */
 
 export type RegraUsuario = "ADMIN" | "LIDER" | "MUSICOS";
@@ -15,11 +15,18 @@ export interface UsuarioRegistro {
   email: string;
   senha_hash: string;
   regra: RegraUsuario;
+  /** Departamento ao qual o usuário pertence. `null` para ADMIN (acesso a todos). */
+  departamento_id: string | null;
   criado_em: string;
 }
 
 /** Versão segura de `Usuario`, sem o hash da senha — a única que circula pela UI. */
 export type Usuario = Omit<UsuarioRegistro, "senha_hash">;
+
+/** `Usuario` com o nome/slug do departamento já resolvidos, para exibição em listas. */
+export interface UsuarioComDepartamento extends Usuario {
+  departamento_nome: string | null;
+}
 
 export interface Departamento {
   id: string;
@@ -34,35 +41,22 @@ export interface EnsaioGrade {
   hora_inicio: string; // HH:mm
   hora_fim: string; // HH:mm
   departamento_id: string;
+  local: string;
+  responsavel: string;
+  observacoes: string;
+}
+
+export type EnsaioEditavel = Pick<
+  EnsaioGrade,
+  "data" | "hora_inicio" | "hora_fim" | "departamento_id" | "local" | "responsavel" | "observacoes"
+>;
+
+/** `EnsaioGrade` com o nome/slug do departamento já resolvidos, para exibição em listas. */
+export interface EnsaioGradeComDepartamento extends EnsaioGrade {
+  departamento_nome: string;
+  departamento_slug: string;
 }
 
 /**
  * Linha da planilha de louvores. Representa exatamente uma linha
- * editável na tabela `louvores_planilha`.
- */
-export interface LouvorPlanilha {
-  id: string;
-  codigo_sequencial: string; // Ex: MOC-001
-  departamento_id: string;
-  nome_louvor: string;
-  cantor_banda: string;
-  tonalidade: string; // Ex: G, Am, C#m
-  link_youtube: string | null;
-  ordem_execucao: number;
-}
-
-/**
- * Payload aceito ao criar uma nova linha. O código sequencial e o id
- * são derivados/gerados no servidor (ou via code-generator.ts),
- * por isso não fazem parte do input do usuário.
- */
-export type NovoLouvorInput = Omit<
-  LouvorPlanilha,
-  "id" | "codigo_sequencial"
->;
-
-/** Campos que podem ser editados inline na planilha. */
-export type LouvorEditavel = Pick<
-  LouvorPlanilha,
-  "nome_louvor" | "cantor_banda" | "tonalidade" | "link_youtube" | "ordem_execucao"
->;
+ * edit

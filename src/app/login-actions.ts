@@ -17,7 +17,7 @@ export async function entrar(formData: FormData) {
     redirect(`/?erro=${encodeURIComponent(MENSAGEM_ERRO_PADRAO)}`);
   }
 
-  const usuario = getUsuarioPorEmail(email);
+  const usuario = await getUsuarioPorEmail(email);
   if (!usuario) {
     redirect(`/?erro=${encodeURIComponent(MENSAGEM_ERRO_PADRAO)}`);
   }
@@ -27,7 +27,11 @@ export async function entrar(formData: FormData) {
     redirect(`/?erro=${encodeURIComponent(MENSAGEM_ERRO_PADRAO)}`);
   }
 
-  const token = await criarTokenSessao({ id: usuario.id, regra: usuario.regra });
+  const token = await criarTokenSessao({
+    id: usuario.id,
+    regra: usuario.regra,
+    departamentoId: usuario.departamento_id,
+  });
   const cookieStore = await cookies();
   cookieStore.set(NOME_COOKIE_SESSAO, token, {
     httpOnly: true,
@@ -42,6 +46,3 @@ export async function entrar(formData: FormData) {
 
 export async function sair() {
   const cookieStore = await cookies();
-  cookieStore.delete(NOME_COOKIE_SESSAO);
-  redirect("/");
-}

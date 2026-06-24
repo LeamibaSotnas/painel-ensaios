@@ -8,6 +8,7 @@ const DURACAO_SESSAO_SEGUNDOS = 60 * 60 * 24 * 7; // 7 dias
 export interface PayloadSessao {
   id: string;
   regra: RegraUsuario;
+  departamentoId: string | null;
 }
 
 function obterSegredo(): Uint8Array {
@@ -36,10 +37,6 @@ export async function verificarTokenSessao(token: string): Promise<PayloadSessao
     if (typeof payload.id !== "string" || typeof payload.regra !== "string") {
       return null;
     }
-    return { id: payload.id, regra: payload.regra as RegraUsuario };
-  } catch {
-    return null;
-  }
-}
-
-export const DURACAO_COOKIE_SESSAO_SEGUNDOS = DURACAO_SESSAO_SEGUNDOS;
+    const departamentoId =
+      typeof payload.departamentoId === "string" ? payload.departamentoId : null;
+    return { id: payload.id, regra

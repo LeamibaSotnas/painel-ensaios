@@ -13,6 +13,5 @@ export async function getUsuarioAtual(): Promise<Usuario | null> {
   const payload = await verificarTokenSessao(token);
   if (!payload) return null;
 
-  const usuario = getUsuarioPorId(payload.id);
-  return usuario ?? null;
-}
+  const usuario = await getUsuarioPorId(payload.id);
+  return usuario ?? nu

@@ -1,6 +1,7 @@
 import { CalendarDays, Clock } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
 import { listarProximosEnsaios } from "@/core/db/queries";
 
 function formatarData(data: string) {
@@ -12,10 +13,13 @@ function formatarData(data: string) {
 }
 
 export default async function VisaoGeralPage() {
-  const proximosEnsaios = listarProximosEnsaios(10);
+  const usuarioAtual = await getUsuarioAtual();
+  const meuDepartamentoId =
+    usuarioAtual?.regra === "ADMIN" ? undefined : usuarioAtual?.departamento_id ?? undefined;
+  const proximosEnsaios = await listarProximosEnsaios(10, meuDepartamentoId);
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Visão geral</h1>
         <p className="text-sm text-muted-foreground">
@@ -41,14 +45,4 @@ export default async function VisaoGeralPage() {
                 </span>
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  {ensaio.hora_inicio.slice(0, 5)}–{ensaio.hora_fim.slice(0, 5)}
-                </span>
-              </div>
-              <Badge variant="outline">{ensaio.departamento_nome}</Badge>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
+                  {

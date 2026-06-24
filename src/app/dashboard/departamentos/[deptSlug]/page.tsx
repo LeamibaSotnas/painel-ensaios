@@ -1,10 +1,13 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { LouvoresTable } from "@/components/LouvoresTable";
 import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
 import { gerarProximoCodigo } from "@/core/utils/code-generator";
+import { buscarMetadadosYoutube } from "@/core/utils/youtube";
 import {
+  alternarFavorito,
+  atualizarDetalhesLouvor,
   atualizarLouvor,
   criarLouvor,
   definirOrdemExecucao,
@@ -12,9 +15,14 @@ import {
   listarCodigosPorDepartamento,
   listarLouvoresPorDepartamento,
   listarOrdemPorDepartamento,
+  marcarExecutado,
   removerLouvor,
 } from "@/core/db/queries";
-import type { LouvorEditavel, NovoLouvorInput } from "@/types/database.types";
+import type {
+  LouvorDetalhesEditavel,
+  LouvorEditavel,
+  NovoLouvorInput,
+} from "@/types/database.types";
 
 interface DepartamentoPageProps {
   params: Promise<{ deptSlug: string }>;
@@ -22,7 +30,7 @@ interface DepartamentoPageProps {
 
 export default async function DepartamentoPage({ params }: DepartamentoPageProps) {
   const { deptSlug } = await params;
-  const departamento = getDepartamentoPorSlug(deptSlug);
+  const departamento = await getDepartamentoPorSlug(deptSlug);
 
   if (!departamento) {
     notFound();
@@ -30,35 +38,41 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
 
   const departamentoId = departamento.id;
   const codigoPrefixoDepartamento = departamento.codigo_prefixo;
-  const louvores = listarLouvoresPorDepartamento(departamentoId);
   const caminhoAtual = `/dashboard/departamentos/${deptSlug}`;
 
   const usuarioAtual = await getUsuarioAtual();
-  const podeEditar = usuarioAtual?.regra === "ADMIN" || usuarioAtual?.regra === "LIDER";
+  const ehAdmin = usuarioAtual?.regra === "ADMIN";
 
-  async function handleAtualizarLinha(id: string, valores: Partial<LouvorEditavel>) {
+  if (!ehAdmin && usuarioAtual?.departamento_id !== departamentoId) {
+    redirect("/dashboard/departamentos");
+  }
+
+  const louvores = await listarLouvoresPorDepartamento(departamentoId);
+  const podeEditar = ehAdmin || usuarioAtual?.regra === "LIDER";
+
+  async function handleAtualizarLinha(id: string, valores: LouvorEditavel) {
     "use server";
-    atualizarLouvor(id, valores);
+    await atualizarLouvor(id, valores);
     revalidatePath(caminhoAtual);
   }
 
   async function handleAdicionarLinha(valores: NovoLouvorInput) {
     "use server";
-    const codigosExistentes = listarCodigosPorDepartamento(valores.departamento_id);
+    const codigosExistentes = await listarCodigosPorDepartamento(valores.departamento_id);
     const proximoCodigo = gerarProximoCodigo(codigoPrefixoDepartamento, codigosExistentes);
-    criarLouvor(valores, proximoCodigo);
+    await criarLouvor(valores, proximoCodigo);
     revalidatePath(caminhoAtual);
   }
 
   async function handleRemoverLinha(id: string) {
     "use server";
-    removerLouvor(id);
+    await removerLouvor(id);
     revalidatePath(caminhoAtual);
   }
 
   async function handleReordenarLinha(id: string, direcao: "up" | "down") {
     "use server";
-    const linhas = listarOrdemPorDepartamento(departamentoId);
+    const linhas = await listarOrdemPorDepartamento(departamentoId);
     const indiceAtual = linhas.findIndex((linha) => linha.id === id);
     if (indiceAtual === -1) return;
 
@@ -67,30 +81,21 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
 
     const atual = linhas[indiceAtual];
     const vizinho = linhas[indiceVizinho];
-    definirOrdemExecucao(atual.id, vizinho.ordem_execucao);
-    definirOrdemExecucao(vizinho.id, atual.ordem_execucao);
+    await definirOrdemExecucao(atual.id, vizinho.ordem_execucao);
+    await definirOrdemExecucao(vizinho.id, atual.ordem_execucao);
     revalidatePath(caminhoAtual);
   }
 
-  return (
-    <div className="flex flex-col gap-6 p-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">{departamento.nome}</h1>
-        <p className="text-sm text-muted-foreground">
-          Planilha de louvores — código {departamento.codigo_prefixo}1, {departamento.codigo_prefixo}2...
-        </p>
-      </header>
+  async function handleAlternarFavorito(id: string, favorito: boolean) {
+    "use server";
+    await alternarFavorito(id, favorito);
+    revalidatePath(caminhoAtual);
+  }
 
-      <LouvoresTable
-        data={louvores}
-        departamentoId={departamentoId}
-        codigoPrefixo={codigoPrefixoDepartamento}
-        editavel={podeEditar}
-        onAtualizarLinha={handleAtualizarLinha}
-        onAdicionarLinha={handleAdicionarLinha}
-        onRemoverLinha={handleRemoverLinha}
-        onReordenarLinha={handleReordenarLinha}
-      />
-    </div>
-  );
-}
+  async function handleMarcarExecutado(id: string) {
+    "use server";
+    await marcarExecutado(id);
+    revalidatePath(caminhoAtual);
+  }
+
+  async function handleAtual

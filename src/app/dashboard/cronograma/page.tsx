@@ -1,10 +1,7 @@
 import { revalidatePath } from "next/cache";
 
-import {
-  EnsaioGrid,
-  type EnsaioEditavel,
-  type EnsaioGradeComDepartamento,
-} from "@/components/EnsaioGrid";
+import { EnsaioGrid, type EnsaioEditavel } from "@/components/EnsaioGrid";
+import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
 import {
   atualizarEnsaio,
   criarEnsaio,
@@ -16,55 +13,47 @@ import {
 const CAMINHO_CRONOGRAMA = "/dashboard/cronograma";
 
 export default async function CronogramaPage() {
-  const departamentos = listarDepartamentos();
-  const ensaiosRaw = listarTodosEnsaios();
+  const usuarioAtual = await getUsuarioAtual();
+  const ehAdmin = usuarioAtual?.regra === "ADMIN";
+  const meuDepartamentoId = ehAdmin ? undefined : usuarioAtual?.departamento_id ?? undefined;
 
-  const ensaios: EnsaioGradeComDepartamento[] = ensaiosRaw.map((ensaio) => ({
-    id: ensaio.id,
-    data: ensaio.data,
-    hora_inicio: ensaio.hora_inicio,
-    hora_fim: ensaio.hora_fim,
-    departamento_id: ensaio.departamento_id,
-    departamento: {
-      nome: ensaio.departamento_nome,
-      slug: ensaio.departamento_slug,
-    },
-  }));
+  const departamentosTodos = await listarDepartamentos();
+  const departamentos = meuDepartamentoId
+    ? departamentosTodos.filter((dep) => dep.id === meuDepartamentoId)
+    : departamentosTodos;
+  const ensaios = await listarTodosEnsaios(meuDepartamentoId);
 
   async function handleAtualizarEnsaio(id: string, valores: EnsaioEditavel) {
     "use server";
-    atualizarEnsaio(id, valores);
+    await atualizarEnsaio(id, valores);
     revalidatePath(CAMINHO_CRONOGRAMA);
   }
 
   async function handleAdicionarEnsaio(valores: EnsaioEditavel) {
     "use server";
-    criarEnsaio(valores);
+    await criarEnsaio(valores);
     revalidatePath(CAMINHO_CRONOGRAMA);
   }
 
   async function handleRemoverEnsaio(id: string) {
     "use server";
-    removerEnsaio(id);
+    await removerEnsaio(id);
     revalidatePath(CAMINHO_CRONOGRAMA);
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Cronograma geral</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {ehAdmin ? "Cronograma geral" : "Cronograma do departamento"}
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Agenda de ensaios de todos os departamentos.
+          {ehAdmin
+            ? "Agenda de ensaios de todos os departamentos."
+            : "Agenda de ensaios do seu departamento."}
         </p>
       </header>
 
       <EnsaioGrid
         data={ensaios}
-        departamentos={departamentos}
-        onAtualizarEnsaio={handleAtualizarEnsaio}
-        onAdicionarEnsaio={handleAdicionarEnsaio}
-        onRemoverEnsaio={handleRemoverEnsaio}
-      />
-    </div>
-  );
-}
+      

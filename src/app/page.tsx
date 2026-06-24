@@ -10,8 +10,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { erro } = await searchParams;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
-      <div className="w-full max-w-sm rounded-xl border bg-background p-8 shadow-sm">
+    <main className="flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-sm rounded-2xl border border-white/60 bg-white/90 p-8 shadow-lg backdrop-blur-sm">
         <h1 className="text-xl font-semibold tracking-tight">
           Painel de Ensaios
         </h1>
@@ -58,6 +58,3 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </Button>
         </form>
       </div>
-    </main>
-  );
-}

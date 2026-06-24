@@ -42,7 +42,7 @@ export function DashboardSidebar({ usuario }: { usuario: Usuario }) {
     : ITENS_BASE;
 
   return (
-    <aside className="flex w-60 flex-col gap-1 border-r p-4">
+    <aside className="flex w-60 flex-col gap-1 border-r border-white/60 bg-white/50 p-4 backdrop-blur-sm">
       <div className="px-2 py-4">
         <p className="text-sm font-semibold leading-tight">
           Painel de Ensaios
@@ -63,8 +63,8 @@ export function DashboardSidebar({ usuario }: { usuario: Usuario }) {
               className={cn(
                 "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
                 ativo
-                  ? "bg-muted font-medium text-foreground"
-                  : "text-muted-foreground hover:bg-muted/50"
+                  ? "bg-white font-medium text-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-white/60"
               )}
             >
               <Icon className="h-4 w-4" />
@@ -82,9 +82,4 @@ export function DashboardSidebar({ usuario }: { usuario: Usuario }) {
           className="w-full justify-start gap-2 text-muted-foreground"
         >
           <LogOut className="h-4 w-4" />
-          Sair
-        </Button>
-      </form>
-    </aside>
-  );
-}
+          Sa

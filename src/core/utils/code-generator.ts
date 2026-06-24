@@ -60,5 +60,4 @@ export function formatarCodigo(prefixo: string, numero: number): string {
 
 /** Valida se uma string já está no formato de código sequencial esperado. */
 export function isCodigoValido(codigo: string): boolean {
-  return CODE_REGEX.test(codigo.trim().toUpperCase());
-}
+  return COD

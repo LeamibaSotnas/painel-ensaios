@@ -8,6 +8,7 @@ import {
   atualizarUsuario,
   criarUsuario,
   emailJaExiste,
+  listarDepartamentos,
   listarUsuarios,
   removerUsuario,
 } from "@/core/db/queries";
@@ -24,11 +25,15 @@ export default async function UsuariosPage() {
   }
 
   const usuarioAtualId = usuarioAtual.id;
-  const usuarios = listarUsuarios();
+  const usuarios = await listarUsuarios();
+  const departamentos = await listarDepartamentos();
 
   async function handleAtualizarUsuario(id: string, valores: UsuarioEditavel) {
     "use server";
-    atualizarUsuario(id, valores);
+    if (valores.regra !== "ADMIN" && !valores.departamentoId) {
+      throw new Error("Selecione um departamento para esse usuário.");
+    }
+    await atualizarUsuario(id, valores);
     revalidatePath(CAMINHO_USUARIOS);
   }
 
@@ -37,40 +42,29 @@ export default async function UsuariosPage() {
     if (id === usuarioAtualId) {
       throw new Error("Você não pode remover sua própria conta.");
     }
-    removerUsuario(id);
+    await removerUsuario(id);
     revalidatePath(CAMINHO_USUARIOS);
   }
 
   async function handleCriarUsuario(valores: NovoUsuarioInput) {
     "use server";
-    if (emailJaExiste(valores.email)) {
+    if (await emailJaExiste(valores.email)) {
       throw new Error("Já existe um usuário com esse e-mail.");
     }
-    criarUsuario({
+    if (valores.regra !== "ADMIN" && !valores.departamentoId) {
+      throw new Error("Selecione um departamento para esse usuário.");
+    }
+    await criarUsuario({
       nome: valores.nome,
       email: valores.email,
       senhaHash: hashSenha(valores.senha),
       regra: valores.regra,
+      departamentoId: valores.departamentoId,
     });
     revalidatePath(CAMINHO_USUARIOS);
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Usuários</h1>
-        <p className="text-sm text-muted-foreground">
-          Gerencie quem tem acesso ao painel e em qual nível.
-        </p>
-      </header>
-
-      <UsuariosTable
-        data={usuarios}
-        usuarioAtualId={usuarioAtualId}
-        onAtualizarUsuario={handleAtualizarUsuario}
-        onRemoverUsuario={handleRemoverUsuario}
-        onCriarUsuario={handleCriarUsuario}
-      />
-    </div>
-  );
-}
+        <h1 className="text-2xl font-semibold tr

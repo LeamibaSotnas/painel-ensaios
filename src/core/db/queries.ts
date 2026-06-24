@@ -1,261 +1,204 @@
 import { getDb } from "@/core/db/client";
 import type {
   Departamento,
-  EnsaioGrade,
+  EnsaioEditavel,
+  EnsaioGradeComDepartamento,
+  LouvorDetalhesEditavel,
   LouvorEditavel,
   LouvorPlanilha,
   NovoLouvorInput,
   RegraUsuario,
   Usuario,
+  UsuarioComDepartamento,
   UsuarioRegistro,
 } from "@/types/database.types";
-
-const SELECT_USUARIO_PUBLICO = "id, nome, email, regra, criado_em";
 
 // ---------------------------------------------------------------------------
 // usuarios
 // ---------------------------------------------------------------------------
 
-export function getUsuarioPorEmail(email: string): UsuarioRegistro | undefined {
-  return getDb()
-    .prepare("SELECT * FROM usuarios WHERE email = ?")
-    .get(email) as UsuarioRegistro | undefined;
+export async function getUsuarioPorEmail(email: string): Promise<UsuarioRegistro | undefined> {
+  const db = await getDb();
+  const { rows } = await db<UsuarioRegistro>`SELECT * FROM usuarios WHERE email = ${email}`;
+  return rows[0];
 }
 
-export function getUsuarioPorId(id: string): Usuario | undefined {
-  return getDb()
-    .prepare(`SELECT ${SELECT_USUARIO_PUBLICO} FROM usuarios WHERE id = ?`)
-    .get(id) as Usuario | undefined;
+export async function getUsuarioPorId(id: string): Promise<Usuario | undefined> {
+  const db = await getDb();
+  const { rows } = await db<Usuario>`
+    SELECT id, nome, email, regra, departamento_id, criado_em FROM usuarios WHERE id = ${id}
+  `;
+  return rows[0];
 }
 
-export function listarUsuarios(): Usuario[] {
-  return getDb()
-    .prepare(`SELECT ${SELECT_USUARIO_PUBLICO} FROM usuarios ORDER BY nome ASC`)
-    .all() as Usuario[];
+export async function listarUsuarios(): Promise<UsuarioComDepartamento[]> {
+  const db = await getDb();
+  const { rows } = await db<UsuarioComDepartamento>`
+    SELECT u.id, u.nome, u.email, u.regra, u.departamento_id, u.criado_em,
+           d.nome as departamento_nome
+    FROM usuarios u
+    LEFT JOIN departamentos d ON d.id = u.departamento_id
+    ORDER BY u.nome ASC
+  `;
+  return rows;
 }
 
-export function emailJaExiste(email: string): boolean {
-  const linha = getDb()
-    .prepare("SELECT 1 FROM usuarios WHERE email = ?")
-    .get(email);
-  return Boolean(linha);
+export async function emailJaExiste(email: string): Promise<boolean> {
+  const db = await getDb();
+  const { rows } = await db`SELECT 1 FROM usuarios WHERE email = ${email}`;
+  return rows.length > 0;
 }
 
-export function criarUsuario(valores: {
+export async function criarUsuario(valores: {
   nome: string;
   email: string;
   senhaHash: string;
   regra: RegraUsuario;
-}): void {
-  getDb()
-    .prepare(
-      "INSERT INTO usuarios (id, nome, email, senha_hash, regra) VALUES (?, ?, ?, ?, ?)"
-    )
-    .run(crypto.randomUUID(), valores.nome, valores.email, valores.senhaHash, valores.regra);
+  departamentoId: string | null;
+}): Promise<void> {
+  const db = await getDb();
+  await db`
+    INSERT INTO usuarios (id, nome, email, senha_hash, regra, departamento_id)
+    VALUES (${crypto.randomUUID()}, ${valores.nome}, ${valores.email}, ${valores.senhaHash}, ${valores.regra}, ${valores.departamentoId})
+  `;
 }
 
-export function atualizarUsuario(
+export async function atualizarUsuario(
   id: string,
-  valores: { nome: string; regra: RegraUsuario }
-): void {
-  getDb()
-    .prepare("UPDATE usuarios SET nome = ?, regra = ? WHERE id = ?")
-    .run(valores.nome, valores.regra, id);
+  valores: { nome: string; regra: RegraUsuario; departamentoId: string | null }
+): Promise<void> {
+  const db = await getDb();
+  await db`
+    UPDATE usuarios SET nome = ${valores.nome}, regra = ${valores.regra}, departamento_id = ${valores.departamentoId}
+    WHERE id = ${id}
+  `;
 }
 
-export function removerUsuario(id: string): void {
-  getDb().prepare("DELETE FROM usuarios WHERE id = ?").run(id);
+export async function removerUsuario(id: string): Promise<void> {
+  const db = await getDb();
+  await db`DELETE FROM usuarios WHERE id = ${id}`;
 }
 
 // ---------------------------------------------------------------------------
 // departamentos
 // ---------------------------------------------------------------------------
 
-export function listarDepartamentos(): Departamento[] {
-  return getDb()
-    .prepare("SELECT id, nome, slug, codigo_prefixo FROM departamentos ORDER BY nome ASC")
-    .all() as Departamento[];
+export async function listarDepartamentos(): Promise<Departamento[]> {
+  const db = await getDb();
+  const { rows } = await db<Departamento>`
+    SELECT id, nome, slug, codigo_prefixo FROM departamentos ORDER BY nome ASC
+  `;
+  return rows;
 }
 
-export function getDepartamentoPorSlug(slug: string): Departamento | undefined {
-  return getDb()
-    .prepare("SELECT id, nome, slug, codigo_prefixo FROM departamentos WHERE slug = ?")
-    .get(slug) as Departamento | undefined;
+export async function getDepartamentoPorSlug(slug: string): Promise<Departamento | undefined> {
+  const db = await getDb();
+  const { rows } = await db<Departamento>`
+    SELECT id, nome, slug, codigo_prefixo FROM departamentos WHERE slug = ${slug}
+  `;
+  return rows[0];
 }
 
-export function slugJaExiste(slug: string, ignorarId?: string): boolean {
-  const linha = ignorarId
-    ? getDb()
-        .prepare("SELECT 1 FROM departamentos WHERE slug = ? AND id != ?")
-        .get(slug, ignorarId)
-    : getDb().prepare("SELECT 1 FROM departamentos WHERE slug = ?").get(slug);
-  return Boolean(linha);
+export async function getDepartamentoPorId(id: string): Promise<Departamento | undefined> {
+  const db = await getDb();
+  const { rows } = await db<Departamento>`
+    SELECT id, nome, slug, codigo_prefixo FROM departamentos WHERE id = ${id}
+  `;
+  return rows[0];
 }
 
-export function codigoPrefixoJaExiste(codigoPrefixo: string, ignorarId?: string): boolean {
-  const linha = ignorarId
-    ? getDb()
-        .prepare("SELECT 1 FROM departamentos WHERE codigo_prefixo = ? AND id != ?")
-        .get(codigoPrefixo, ignorarId)
-    : getDb()
-        .prepare("SELECT 1 FROM departamentos WHERE codigo_prefixo = ?")
-        .get(codigoPrefixo);
-  return Boolean(linha);
+export async function slugJaExiste(slug: string, ignorarId?: string): Promise<boolean> {
+  const db = await getDb();
+  const { rows } = ignorarId
+    ? await db`SELECT 1 FROM departamentos WHERE slug = ${slug} AND id != ${ignorarId}`
+    : await db`SELECT 1 FROM departamentos WHERE slug = ${slug}`;
+  return rows.length > 0;
 }
 
-export function criarDepartamento(valores: {
+export async function codigoPrefixoJaExiste(
+  codigoPrefixo: string,
+  ignorarId?: string
+): Promise<boolean> {
+  const db = await getDb();
+  const { rows } = ignorarId
+    ? await db`SELECT 1 FROM departamentos WHERE codigo_prefixo = ${codigoPrefixo} AND id != ${ignorarId}`
+    : await db`SELECT 1 FROM departamentos WHERE codigo_prefixo = ${codigoPrefixo}`;
+  return rows.length > 0;
+}
+
+export async function criarDepartamento(valores: {
   nome: string;
   slug: string;
   codigoPrefixo: string;
-}): Departamento {
+}): Promise<Departamento> {
+  const db = await getDb();
   const id = crypto.randomUUID();
-  getDb()
-    .prepare(
-      "INSERT INTO departamentos (id, nome, slug, codigo_prefixo) VALUES (?, ?, ?, ?)"
-    )
-    .run(id, valores.nome, valores.slug, valores.codigoPrefixo);
+  await db`
+    INSERT INTO departamentos (id, nome, slug, codigo_prefixo)
+    VALUES (${id}, ${valores.nome}, ${valores.slug}, ${valores.codigoPrefixo})
+  `;
   return { id, nome: valores.nome, slug: valores.slug, codigo_prefixo: valores.codigoPrefixo };
 }
 
-export function atualizarDepartamento(
+export async function atualizarDepartamento(
   id: string,
   valores: { nome: string; codigoPrefixo: string }
-): void {
-  getDb()
-    .prepare("UPDATE departamentos SET nome = ?, codigo_prefixo = ? WHERE id = ?")
-    .run(valores.nome, valores.codigoPrefixo, id);
+): Promise<void> {
+  const db = await getDb();
+  await db`
+    UPDATE departamentos SET nome = ${valores.nome}, codigo_prefixo = ${valores.codigoPrefixo}
+    WHERE id = ${id}
+  `;
 }
 
-export function removerDepartamento(id: string): void {
-  getDb().prepare("DELETE FROM departamentos WHERE id = ?").run(id);
+export async function removerDepartamento(id: string): Promise<void> {
+  const db = await getDb();
+  await db`DELETE FROM departamentos WHERE id = ${id}`;
 }
 
 // ---------------------------------------------------------------------------
 // ensaios_grade
 // ---------------------------------------------------------------------------
 
-export interface EnsaioGradeComDepartamento extends EnsaioGrade {
-  departamento_nome: string;
-  departamento_slug: string;
+export async function listarProximosEnsaios(
+  limite = 10,
+  departamentoId?: string
+): Promise<EnsaioGradeComDepartamento[]> {
+  const db = await getDb();
+  const { rows } = departamentoId
+    ? await db<EnsaioGradeComDepartamento>`
+        SELECT e.id, e.data, e.hora_inicio, e.hora_fim, e.departamento_id,
+               e.local, e.responsavel, e.observacoes,
+               d.nome as departamento_nome, d.slug as departamento_slug
+        FROM ensaios_grade e
+        JOIN departamentos d ON d.id = e.departamento_id
+        WHERE e.data >= CURRENT_DATE::text AND e.departamento_id = ${departamentoId}
+        ORDER BY e.data ASC, e.hora_inicio ASC
+        LIMIT ${limite}
+      `
+    : await db<EnsaioGradeComDepartamento>`
+        SELECT e.id, e.data, e.hora_inicio, e.hora_fim, e.departamento_id,
+               e.local, e.responsavel, e.observacoes,
+               d.nome as departamento_nome, d.slug as departamento_slug
+        FROM ensaios_grade e
+        JOIN departamentos d ON d.id = e.departamento_id
+        WHERE e.data >= CURRENT_DATE::text
+        ORDER BY e.data ASC, e.hora_inicio ASC
+        LIMIT ${limite}
+      `;
+  return rows;
 }
 
-export function listarProximosEnsaios(limite = 10): EnsaioGradeComDepartamento[] {
-  return getDb()
-    .prepare(
-      `SELECT e.id, e.data, e.hora_inicio, e.hora_fim, e.departamento_id,
-              d.nome as departamento_nome, d.slug as departamento_slug
-       FROM ensaios_grade e
-       JOIN departamentos d ON d.id = e.departamento_id
-       WHERE e.data >= date('now')
-       ORDER BY e.data ASC, e.hora_inicio ASC
-       LIMIT ?`
-    )
-    .all(limite) as EnsaioGradeComDepartamento[];
-}
-
-export function listarTodosEnsaios(): EnsaioGradeComDepartamento[] {
-  return getDb()
-    .prepare(
-      `SELECT e.id, e.data, e.hora_inicio, e.hora_fim, e.departamento_id,
-              d.nome as departamento_nome, d.slug as departamento_slug
-       FROM ensaios_grade e
-       JOIN departamentos d ON d.id = e.departamento_id
-       ORDER BY e.data ASC, e.hora_inicio ASC`
-    )
-    .all() as EnsaioGradeComDepartamento[];
-}
-
-export type EnsaioEditavel = Pick<
-  EnsaioGrade,
-  "data" | "hora_inicio" | "hora_fim" | "departamento_id"
->;
-
-export function criarEnsaio(valores: EnsaioEditavel): void {
-  getDb()
-    .prepare(
-      "INSERT INTO ensaios_grade (id, data, hora_inicio, hora_fim, departamento_id) VALUES (?, ?, ?, ?, ?)"
-    )
-    .run(crypto.randomUUID(), valores.data, valores.hora_inicio, valores.hora_fim, valores.departamento_id);
-}
-
-export function atualizarEnsaio(id: string, valores: EnsaioEditavel): void {
-  getDb()
-    .prepare(
-      "UPDATE ensaios_grade SET data = ?, hora_inicio = ?, hora_fim = ?, departamento_id = ? WHERE id = ?"
-    )
-    .run(valores.data, valores.hora_inicio, valores.hora_fim, valores.departamento_id, id);
-}
-
-export function removerEnsaio(id: string): void {
-  getDb().prepare("DELETE FROM ensaios_grade WHERE id = ?").run(id);
-}
-
-// ---------------------------------------------------------------------------
-// louvores_planilha
-// ---------------------------------------------------------------------------
-
-export function listarLouvoresPorDepartamento(departamentoId: string): LouvorPlanilha[] {
-  return getDb()
-    .prepare(
-      "SELECT * FROM louvores_planilha WHERE departamento_id = ? ORDER BY ordem_execucao ASC"
-    )
-    .all(departamentoId) as LouvorPlanilha[];
-}
-
-export function listarCodigosPorDepartamento(departamentoId: string): string[] {
-  const linhas = getDb()
-    .prepare("SELECT codigo_sequencial FROM louvores_planilha WHERE departamento_id = ?")
-    .all(departamentoId) as { codigo_sequencial: string }[];
-  return linhas.map((linha) => linha.codigo_sequencial);
-}
-
-export function criarLouvor(valores: NovoLouvorInput, codigoSequencial: string): void {
-  getDb()
-    .prepare(
-      `INSERT INTO louvores_planilha
-        (id, codigo_sequencial, departamento_id, nome_louvor, cantor_banda, tonalidade, link_youtube, ordem_execucao)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(
-      crypto.randomUUID(),
-      codigoSequencial,
-      valores.departamento_id,
-      valores.nome_louvor,
-      valores.cantor_banda,
-      valores.tonalidade,
-      valores.link_youtube,
-      valores.ordem_execucao
-    );
-}
-
-export function atualizarLouvor(id: string, valores: Partial<LouvorEditavel>): void {
-  const campos = Object.keys(valores) as (keyof LouvorEditavel)[];
-  if (campos.length === 0) return;
-
-  const colunas = campos.map((campo) => `${campo} = ?`).join(", ");
-  const valoresOrdenados = campos.map((campo) => valores[campo]);
-
-  getDb()
-    .prepare(`UPDATE louvores_planilha SET ${colunas} WHERE id = ?`)
-    .run(...valoresOrdenados, id);
-}
-
-export function removerLouvor(id: string): void {
-  getDb().prepare("DELETE FROM louvores_planilha WHERE id = ?").run(id);
-}
-
-export function listarOrdemPorDepartamento(
-  departamentoId: string
-): { id: string; ordem_execucao: number }[] {
-  return getDb()
-    .prepare(
-      "SELECT id, ordem_execucao FROM louvores_planilha WHERE departamento_id = ? ORDER BY ordem_execucao ASC"
-    )
-    .all(departamentoId) as { id: string; ordem_execucao: number }[];
-}
-
-export function definirOrdemExecucao(id: string, ordemExecucao: number): void {
-  getDb()
-    .prepare("UPDATE louvores_planilha SET ordem_execucao = ? WHERE id = ?")
-    .run(ordemExecucao, id);
-}
+export async function listarTodosEnsaios(
+  departamentoId?: string
+): Promise<EnsaioGradeComDepartamento[]> {
+  const db = await getDb();
+  const { rows } = departamentoId
+    ? await db<EnsaioGradeComDepartamento>`
+        SELECT e.id, e.data, e.hora_inicio, e.hora_fim, e.departamento_id,
+               e.local, e.responsavel, e.observacoes,
+               d.nome as departamento_nome, d.slug as departamento_slug
+        FROM ensaios_grade e
+        JOIN departamentos d ON d.id = e.departamento_id
+        WHERE e.departamento_id = ${departamentoId}
+        ORDER BY e.data ASC, e.ho
