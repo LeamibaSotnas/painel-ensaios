@@ -51,37 +51,61 @@ export default async function DepartamentosIndexPage() {
 
   const departamentos = await listarDepartamentos();
 
-  async function handleCriarDepartamento(valores: NovoDepartamentoInput) {
+  // Nota: as actions abaixo retornam `{ erro }` em vez de lançar exceção —
+  // erros lançados (throw) dentro de Server Actions chegam mascarados ao
+  // cliente em produção ("An error occurred in the Server Components
+  // render..."), escondendo a mensagem real.
+  async function handleCriarDepartamento(
+    valores: NovoDepartamentoInput
+  ): Promise<{ erro?: string }> {
     "use server";
     const prefixo = valores.codigoPrefixo.trim().toUpperCase();
     if (!PREFIXO_REGEX.test(prefixo)) {
-      throw new Error("O prefixo deve conter apenas letras (ex.: SA, AD, JD).");
+      return { erro: "O prefixo deve conter apenas letras (ex.: SA, AD, JD)." };
     }
     if (await codigoPrefixoJaExiste(prefixo)) {
-      throw new Error("Esse prefixo já está em uso por outro departamento.");
+      return { erro: "Esse prefixo já está em uso por outro departamento." };
     }
-    const slug = await gerarSlugUnico(valores.nome);
-    await criarDepartamento({ nome: valores.nome, slug, codigoPrefixo: prefixo });
+    try {
+      const slug = await gerarSlugUnico(valores.nome);
+      await criarDepartamento({ nome: valores.nome, slug, codigoPrefixo: prefixo });
+    } catch (erro) {
+      return { erro: erro instanceof Error ? erro.message : "Falha ao criar no banco de dados." };
+    }
     revalidatePath(CAMINHO_DEPARTAMENTOS);
+    return {};
   }
 
-  async function handleAtualizarDepartamento(id: string, valores: DepartamentoEditavel) {
+  async function handleAtualizarDepartamento(
+    id: string,
+    valores: DepartamentoEditavel
+  ): Promise<{ erro?: string }> {
     "use server";
     const prefixo = valores.codigoPrefixo.trim().toUpperCase();
     if (!PREFIXO_REGEX.test(prefixo)) {
-      throw new Error("O prefixo deve conter apenas letras (ex.: SA, AD, JD).");
+      return { erro: "O prefixo deve conter apenas letras (ex.: SA, AD, JD)." };
     }
     if (await codigoPrefixoJaExiste(prefixo, id)) {
-      throw new Error("Esse prefixo já está em uso por outro departamento.");
+      return { erro: "Esse prefixo já está em uso por outro departamento." };
     }
-    await atualizarDepartamento(id, { nome: valores.nome, codigoPrefixo: prefixo });
+    try {
+      await atualizarDepartamento(id, { nome: valores.nome, codigoPrefixo: prefixo });
+    } catch (erro) {
+      return { erro: erro instanceof Error ? erro.message : "Falha ao salvar no banco de dados." };
+    }
     revalidatePath(CAMINHO_DEPARTAMENTOS);
+    return {};
   }
 
-  async function handleRemoverDepartamento(id: string) {
+  async function handleRemoverDepartamento(id: string): Promise<{ erro?: string }> {
     "use server";
-    await removerDepartamento(id);
+    try {
+      await removerDepartamento(id);
+    } catch (erro) {
+      return { erro: erro instanceof Error ? erro.message : "Falha ao remover no banco de dados." };
+    }
     revalidatePath(CAMINHO_DEPARTAMENTOS);
+    return {};
   }
 
   return (

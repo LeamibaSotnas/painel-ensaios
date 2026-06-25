@@ -41,67 +41,102 @@ export default async function UsuariosPage() {
     : todosDepartamentos;
   const regrasPermitidas = regrasAtribuiveis(usuarioAtual);
 
-  /** Garante que um Admin de Painel só opere sobre usuários/papéis do próprio departamento. */
-  function validarEscopoAdminPainel(valores: { regra: string; departamentoId: string | null }) {
-    if (!restritoAoProprioDepartamento) return;
+  /**
+   * Garante que um Admin de Painel só opere sobre usuários/papéis do próprio
+   * departamento. Retorna a mensagem de erro (em vez de lançar) porque erros
+   * lançados dentro de Server Actions chegam mascarados ao cliente em
+   * produção ("An error occurred in the Server Components render...").
+   */
+  function validarEscopoAdminPainel(valores: {
+    regra: string;
+    departamentoId: string | null;
+  }): string | null {
+    if (!restritoAoProprioDepartamento) return null;
     if (valores.regra === "ADMIN" || valores.regra === "ADMIN_PAINEL") {
-      throw new Error("Você não tem permissão para atribuir esse papel.");
+      return "Você não tem permissão para atribuir esse papel.";
     }
     if (valores.departamentoId !== meuDepartamentoId) {
-      throw new Error("Você só pode gerenciar usuários do seu próprio departamento.");
+      return "Você só pode gerenciar usuários do seu próprio departamento.";
     }
+    return null;
   }
 
-  async function handleAtualizarUsuario(id: string, valores: UsuarioEditavel) {
+  async function handleAtualizarUsuario(
+    id: string,
+    valores: UsuarioEditavel
+  ): Promise<{ erro?: string }> {
     "use server";
     if (valores.regra !== "ADMIN" && !valores.departamentoId) {
-      throw new Error("Selecione um departamento para esse usuário.");
+      return { erro: "Selecione um departamento para esse usuário." };
     }
     if (restritoAoProprioDepartamento) {
       const alvo = todosUsuarios.find((u) => u.id === id);
       if (!alvo || alvo.departamento_id !== meuDepartamentoId) {
-        throw new Error("Você só pode gerenciar usuários do seu próprio departamento.");
+        return { erro: "Você só pode gerenciar usuários do seu próprio departamento." };
       }
-      validarEscopoAdminPainel(valores);
+      const erroEscopo = validarEscopoAdminPainel(valores);
+      if (erroEscopo) return { erro: erroEscopo };
     }
-    await atualizarUsuario(id, valores);
+    try {
+      await atualizarUsuario(id, valores);
+    } catch (erro) {
+      return { erro: erro instanceof Error ? erro.message : "Falha ao salvar no banco de dados." };
+    }
     revalidatePath(CAMINHO_USUARIOS);
+    return {};
   }
 
-  async function handleRemoverUsuario(id: string) {
+  async function handleRemoverUsuario(id: string): Promise<{ erro?: string }> {
     "use server";
     if (id === usuarioAtualId) {
-      throw new Error("Você não pode remover sua própria conta.");
+      return { erro: "Você não pode remover sua própria conta." };
     }
     if (restritoAoProprioDepartamento) {
       const alvo = todosUsuarios.find((u) => u.id === id);
       if (!alvo || alvo.departamento_id !== meuDepartamentoId) {
-        throw new Error("Você só pode remover usuários do seu próprio departamento.");
+        return { erro: "Você só pode remover usuários do seu próprio departamento." };
       }
     }
-    await removerUsuario(id);
+    try {
+      await removerUsuario(id);
+    } catch (erro) {
+      return { erro: erro instanceof Error ? erro.message : "Falha ao remover no banco de dados." };
+    }
     revalidatePath(CAMINHO_USUARIOS);
+    return {};
   }
 
-  async function handleCriarUsuario(valores: NovoUsuarioInput) {
+  async function handleCriarUsuario(valores: NovoUsuarioInput): Promise<{ erro?: string }> {
     "use server";
-    if (await emailJaExiste(valores.email)) {
-      throw new Error("Já existe um usuário com esse e-mail.");
+    try {
+      if (await emailJaExiste(valores.email)) {
+        return { erro: "Já existe um usuário com esse e-mail." };
+      }
+    } catch (erro) {
+      return {
+        erro: erro instanceof Error ? `Falha ao verificar e-mail: ${erro.message}` : "Falha ao verificar e-mail.",
+      };
     }
     if (valores.regra !== "ADMIN" && !valores.departamentoId) {
-      throw new Error("Selecione um departamento para esse usuário.");
+      return { erro: "Selecione um departamento para esse usuário." };
     }
     if (restritoAoProprioDepartamento) {
-      validarEscopoAdminPainel(valores);
+      const erroEscopo = validarEscopoAdminPainel(valores);
+      if (erroEscopo) return { erro: erroEscopo };
     }
-    await criarUsuario({
-      nome: valores.nome,
-      email: valores.email,
-      senhaHash: hashSenha(valores.senha),
-      regra: valores.regra,
-      departamentoId: valores.departamentoId,
-    });
+    try {
+      await criarUsuario({
+        nome: valores.nome,
+        email: valores.email,
+        senhaHash: hashSenha(valores.senha),
+        regra: valores.regra,
+        departamentoId: valores.departamentoId,
+      });
+    } catch (erro) {
+      return { erro: erro instanceof Error ? erro.message : "Falha ao criar no banco de dados." };
+    }
     revalidatePath(CAMINHO_USUARIOS);
+    return {};
   }
 
   return (

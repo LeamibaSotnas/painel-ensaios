@@ -37,9 +37,9 @@ export interface EnsaioGridProps {
   departamentos: Departamento[];
   /** Quando `false`, o cronograma fica somente leitura (sem agendar/editar/remover). */
   editavel?: boolean;
-  onAtualizarEnsaio: (id: string, valores: EnsaioEditavel) => Promise<void>;
-  onAdicionarEnsaio: (valores: EnsaioEditavel) => Promise<void>;
-  onRemoverEnsaio: (id: string) => Promise<void>;
+  onAtualizarEnsaio: (id: string, valores: EnsaioEditavel) => Promise<{ erro?: string } | void>;
+  onAdicionarEnsaio: (valores: EnsaioEditavel) => Promise<{ erro?: string } | void>;
+  onRemoverEnsaio: (id: string) => Promise<{ erro?: string } | void>;
 }
 
 const DRAFT_VAZIO = (departamentoId: string): EnsaioEditavel => ({
@@ -268,10 +268,14 @@ export function EnsaioGrid({
     setSavingId(id);
     setErro(null);
     try {
-      await onAtualizarEnsaio(id, draft);
+      const resultado = await onAtualizarEnsaio(id, draft);
+      if (resultado?.erro) {
+        setErro(resultado.erro);
+        return;
+      }
       setEditingId(null);
-    } catch {
-      setErro("Não foi possível salvar esse ensaio.");
+    } catch (erro) {
+      setErro(erro instanceof Error ? erro.message : "Não foi possível salvar esse ensaio.");
     } finally {
       setSavingId(null);
     }
@@ -281,9 +285,12 @@ export function EnsaioGrid({
     setSavingId(id);
     setErro(null);
     try {
-      await onRemoverEnsaio(id);
-    } catch {
-      setErro("Não foi possível remover esse ensaio.");
+      const resultado = await onRemoverEnsaio(id);
+      if (resultado?.erro) {
+        setErro(resultado.erro);
+      }
+    } catch (erro) {
+      setErro(erro instanceof Error ? erro.message : "Não foi possível remover esse ensaio.");
     } finally {
       setSavingId(null);
     }
@@ -293,11 +300,15 @@ export function EnsaioGrid({
     setIsSavingNovo(true);
     setErro(null);
     try {
-      await onAdicionarEnsaio(novoDraft);
+      const resultado = await onAdicionarEnsaio(novoDraft);
+      if (resultado?.erro) {
+        setErro(resultado.erro);
+        return;
+      }
       setIsAdding(false);
       setNovoDraft(DRAFT_VAZIO(departamentos[0]?.id ?? ""));
-    } catch {
-      setErro("Não foi possível adicionar o ensaio.");
+    } catch (erro) {
+      setErro(erro instanceof Error ? erro.message : "Não foi possível adicionar o ensaio.");
     } finally {
       setIsSavingNovo(false);
     }

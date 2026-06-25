@@ -25,9 +25,9 @@ export interface NovoDepartamentoInput {
 
 export interface DepartamentosManagerProps {
   data: Departamento[];
-  onCriarDepartamento: (valores: NovoDepartamentoInput) => Promise<void>;
-  onAtualizarDepartamento: (id: string, valores: DepartamentoEditavel) => Promise<void>;
-  onRemoverDepartamento: (id: string) => Promise<void>;
+  onCriarDepartamento: (valores: NovoDepartamentoInput) => Promise<{ erro?: string } | void>;
+  onAtualizarDepartamento: (id: string, valores: DepartamentoEditavel) => Promise<{ erro?: string } | void>;
+  onRemoverDepartamento: (id: string) => Promise<{ erro?: string } | void>;
 }
 
 const DRAFT_VAZIO: DepartamentoEditavel = { nome: "", codigoPrefixo: "" };
@@ -66,10 +66,14 @@ export function DepartamentosManager({
     setSavingId(id);
     setErro(null);
     try {
-      await onAtualizarDepartamento(id, {
+      const resultado = await onAtualizarDepartamento(id, {
         nome: draft.nome.trim(),
         codigoPrefixo: draft.codigoPrefixo.trim().toUpperCase(),
       });
+      if (resultado?.erro) {
+        setErro(resultado.erro);
+        return;
+      }
       setEditingId(null);
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Não foi possível salvar esse departamento.");
@@ -82,7 +86,11 @@ export function DepartamentosManager({
     setSavingId(id);
     setErro(null);
     try {
-      await onRemoverDepartamento(id);
+      const resultado = await onRemoverDepartamento(id);
+      if (resultado?.erro) {
+        setErro(resultado.erro);
+        return;
+      }
       setConfirmandoRemocaoId(null);
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Não foi possível remover esse departamento.");
@@ -99,10 +107,14 @@ export function DepartamentosManager({
     setIsSavingNovo(true);
     setErro(null);
     try {
-      await onCriarDepartamento({
+      const resultado = await onCriarDepartamento({
         nome: novoDraft.nome.trim(),
         codigoPrefixo: novoDraft.codigoPrefixo.trim().toUpperCase(),
       });
+      if (resultado?.erro) {
+        setErro(resultado.erro);
+        return;
+      }
       setIsCriando(false);
       setNovoDraft(DRAFT_VAZIO);
     } catch (e) {

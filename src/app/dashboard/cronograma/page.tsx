@@ -25,31 +25,53 @@ export default async function CronogramaPage() {
     : departamentosTodos;
   const ensaios = await listarTodosEnsaios(meuDepartamentoId);
 
-  async function handleAtualizarEnsaio(id: string, valores: EnsaioEditavel) {
+  // Nota: as actions abaixo retornam `{ erro }` em vez de lançar exceção —
+  // erros lançados (throw) dentro de Server Actions chegam mascarados ao
+  // cliente em produção ("An error occurred in the Server Components
+  // render..."), escondendo a mensagem real.
+  async function handleAtualizarEnsaio(
+    id: string,
+    valores: EnsaioEditavel
+  ): Promise<{ erro?: string }> {
     "use server";
     if (!podeEditarCronograma) {
-      throw new Error("Você não tem permissão para editar o cronograma.");
+      return { erro: "Você não tem permissão para editar o cronograma." };
     }
-    await atualizarEnsaio(id, valores);
+    try {
+      await atualizarEnsaio(id, valores);
+    } catch (erro) {
+      return { erro: erro instanceof Error ? erro.message : "Falha ao salvar no banco de dados." };
+    }
     revalidatePath(CAMINHO_CRONOGRAMA);
+    return {};
   }
 
-  async function handleAdicionarEnsaio(valores: EnsaioEditavel) {
+  async function handleAdicionarEnsaio(valores: EnsaioEditavel): Promise<{ erro?: string }> {
     "use server";
     if (!podeEditarCronograma) {
-      throw new Error("Você não tem permissão para agendar ensaios.");
+      return { erro: "Você não tem permissão para agendar ensaios." };
     }
-    await criarEnsaio(valores);
+    try {
+      await criarEnsaio(valores);
+    } catch (erro) {
+      return { erro: erro instanceof Error ? erro.message : "Falha ao agendar no banco de dados." };
+    }
     revalidatePath(CAMINHO_CRONOGRAMA);
+    return {};
   }
 
-  async function handleRemoverEnsaio(id: string) {
+  async function handleRemoverEnsaio(id: string): Promise<{ erro?: string }> {
     "use server";
     if (!podeEditarCronograma) {
-      throw new Error("Você não tem permissão para remover ensaios.");
+      return { erro: "Você não tem permissão para remover ensaios." };
     }
-    await removerEnsaio(id);
+    try {
+      await removerEnsaio(id);
+    } catch (erro) {
+      return { erro: erro instanceof Error ? erro.message : "Falha ao remover no banco de dados." };
+    }
     revalidatePath(CAMINHO_CRONOGRAMA);
+    return {};
   }
 
   return (

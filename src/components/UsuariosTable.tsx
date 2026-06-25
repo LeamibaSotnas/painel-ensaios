@@ -38,9 +38,9 @@ export interface UsuariosTableProps {
   usuarioAtualId: string;
   /** Papéis que o usuário logado tem permissão de atribuir a outros. */
   regrasPermitidas?: RegraUsuario[];
-  onAtualizarUsuario: (id: string, valores: UsuarioEditavel) => Promise<void>;
-  onRemoverUsuario: (id: string) => Promise<void>;
-  onCriarUsuario: (valores: NovoUsuarioInput) => Promise<void>;
+  onAtualizarUsuario: (id: string, valores: UsuarioEditavel) => Promise<{ erro?: string } | void>;
+  onRemoverUsuario: (id: string) => Promise<{ erro?: string } | void>;
+  onCriarUsuario: (valores: NovoUsuarioInput) => Promise<{ erro?: string } | void>;
 }
 
 const REGRAS: RegraUsuario[] = ["ADMIN", "ADMIN_PAINEL", "LIDER", "MUSICOS"];
@@ -164,10 +164,14 @@ export function UsuariosTable({
     setSavingId(id);
     setErro(null);
     try {
-      await onAtualizarUsuario(id, {
+      const resultado = await onAtualizarUsuario(id, {
         ...draft,
         departamentoId: draft.regra === "ADMIN" ? null : draft.departamentoId,
       });
+      if (resultado?.erro) {
+        setErro(resultado.erro);
+        return;
+      }
       setEditingId(null);
     } catch (erro) {
       setErro(erro instanceof Error ? erro.message : "Não foi possível salvar esse usuário.");
@@ -180,7 +184,10 @@ export function UsuariosTable({
     setSavingId(id);
     setErro(null);
     try {
-      await onRemoverUsuario(id);
+      const resultado = await onRemoverUsuario(id);
+      if (resultado?.erro) {
+        setErro(resultado.erro);
+      }
     } catch (erro) {
       setErro(erro instanceof Error ? erro.message : "Não foi possível remover esse usuário.");
     } finally {
@@ -208,7 +215,7 @@ export function UsuariosTable({
     setIsSavingNovoUsuario(true);
     setErro(null);
     try {
-      await onCriarUsuario({
+      const resultado = await onCriarUsuario({
         nome: novoUsuarioDraft.nome.trim(),
         email: novoUsuarioDraft.email.trim(),
         senha: novoUsuarioDraft.senha,
@@ -216,6 +223,10 @@ export function UsuariosTable({
         departamentoId:
           novoUsuarioDraft.regra === "ADMIN" ? null : novoUsuarioDraft.departamentoId,
       });
+      if (resultado?.erro) {
+        setErro(resultado.erro);
+        return;
+      }
       setIsCriando(false);
       setNovoUsuarioDraft({
         nome: "",
