@@ -21,14 +21,16 @@ export default async function VisaoGeralPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Visão geral</h1>
+        <h1 className="bg-gradient-to-r from-violet-700 via-fuchsia-600 to-amber-500 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+          Visão geral
+        </h1>
         <p className="text-sm text-muted-foreground">
           Próximos ensaios agendados no cronograma.
         </p>
       </header>
 
       {proximosEnsaios.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-2xl border border-dashed border-violet-200 bg-violet-50/40 p-8 text-center text-sm text-muted-foreground">
           Nenhum ensaio futuro cadastrado ainda.
         </p>
       ) : (
@@ -36,10 +38,12 @@ export default async function VisaoGeralPage() {
           {proximosEnsaios.map((ensaio) => (
             <li
               key={ensaio.id}
-              className="flex flex-col gap-2 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-3 rounded-2xl border border-violet-100 bg-white/70 p-4 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex flex-wrap items-center gap-3">
-                <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-fuchsia-100 text-violet-600">
+                  <CalendarDays className="h-4 w-4" />
+                </span>
                 <span className="text-sm font-medium capitalize">
                   {formatarData(ensaio.data)}
                 </span>

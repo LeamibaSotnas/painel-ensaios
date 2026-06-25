@@ -11,8 +11,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-2xl border border-white/60 bg-white/90 p-8 shadow-lg backdrop-blur-sm">
-        <h1 className="text-xl font-semibold tracking-tight">
+      <div className="w-full max-w-sm rounded-3xl border border-white/60 bg-white/80 p-8 shadow-2xl shadow-violet-900/10 backdrop-blur-xl">
+        <div className="mb-1 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-500 text-lg font-bold text-white shadow-md shadow-violet-500/30">
+          ♪
+        </div>
+        <h1 className="mt-3 bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-xl font-bold tracking-tight text-transparent">
           Painel de Ensaios
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">

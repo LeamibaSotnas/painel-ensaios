@@ -37,7 +37,7 @@ export function MobileNav({ usuario }: { usuario: Usuario }) {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-white/60 bg-white/90 backdrop-blur-sm md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-violet-100 bg-white/90 shadow-[0_-4px_20px_-8px_rgba(124,58,237,0.25)] backdrop-blur-xl md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {itens.map(({ href, label, icon: Icon }) => {
@@ -47,11 +47,14 @@ export function MobileNav({ usuario }: { usuario: Usuario }) {
             key={href}
             href={href}
             className={cn(
-              "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] transition-colors",
-              ativo ? "font-medium text-foreground" : "text-muted-foreground"
+              "relative flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] transition-colors",
+              ativo ? "font-medium text-violet-600" : "text-muted-foreground"
             )}
           >
-            <Icon className={cn("h-5 w-5", ativo && "text-primary")} />
+            {ativo && (
+              <span className="absolute top-0 h-0.5 w-8 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500" />
+            )}
+            <Icon className={cn("h-5 w-5", ativo && "text-violet-600")} />
             {label}
           </Link>
         );

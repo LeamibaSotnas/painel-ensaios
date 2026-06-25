@@ -42,9 +42,9 @@ export function DashboardSidebar({ usuario }: { usuario: Usuario }) {
     : ITENS_BASE;
 
   return (
-    <aside className="hidden w-60 flex-col gap-1 border-r border-white/60 bg-white/50 p-4 backdrop-blur-sm md:flex">
+    <aside className="hidden w-64 flex-col gap-1 border-r border-violet-100 bg-white/60 p-4 backdrop-blur-xl md:flex">
       <div className="px-2 py-4">
-        <p className="text-sm font-semibold leading-tight">
+        <p className="bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-sm font-bold leading-tight text-transparent">
           Painel de Ensaios
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -61,10 +61,10 @@ export function DashboardSidebar({ usuario }: { usuario: Usuario }) {
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+                "flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-all",
                 ativo
-                  ? "bg-white font-medium text-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-white/60"
+                  ? "bg-gradient-to-r from-violet-600 to-fuchsia-500 font-medium text-white shadow-md shadow-violet-500/25"
+                  : "text-muted-foreground hover:bg-violet-50 hover:text-violet-700"
               )}
             >
               <Icon className="h-4 w-4" />

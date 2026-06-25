@@ -27,11 +27,14 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen flex-col md:flex-row">
       <DashboardSidebar usuario={usuario} />
       <div className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-white/60 bg-white/50 px-4 py-3 backdrop-blur-sm md:justify-end md:px-6 md:py-4">
-          <span className="text-sm font-semibold md:hidden">Painel de Ensaios</span>
+        <header className="flex items-center justify-between border-b border-violet-100 bg-white/60 px-4 py-3 backdrop-blur-xl md:justify-end md:px-6 md:py-4">
+          <span className="bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-sm font-bold text-transparent md:hidden">
+            Painel de Ensaios
+          </span>
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">
-              {usuario.nome} · {usuario.regra}
+              {usuario.nome} ·{" "}
+              <span className="font-medium text-violet-600">{usuario.regra}</span>
             </span>
             <form action={sair} className="md:hidden">
               <Button type="submit" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
@@ -41,7 +44,7 @@ export default async function DashboardLayout({
           </div>
         </header>
         <main className="flex-1 p-4 pb-24 md:p-6 md:pb-6">
-          <div className="mx-auto max-w-6xl rounded-2xl bg-white/80 p-4 shadow-sm backdrop-blur-sm md:p-6">
+          <div className="mx-auto max-w-6xl rounded-3xl border border-white/60 bg-white/70 p-4 shadow-xl shadow-violet-900/5 backdrop-blur-xl md:p-6">
             {children}
           </div>
         </main>
