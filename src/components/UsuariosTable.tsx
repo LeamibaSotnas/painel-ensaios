@@ -60,7 +60,7 @@ function SeletorRegra({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value as RegraUsuario)}
-      className="h-8 w-32 rounded-md border border-input bg-background px-2 text-sm"
+      className="h-8 w-32 rounded-lg border border-violet-200 bg-white/70 px-2 text-sm shadow-sm transition-all focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30"
     >
       {REGRAS.map((regra) => (
         <option key={regra} value={regra}>
@@ -89,7 +89,7 @@ function SeletorDepartamento({
     <select
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value || null)}
-      className="h-8 w-36 rounded-md border border-input bg-background px-2 text-sm"
+      className="h-8 w-36 rounded-lg border border-violet-200 bg-white/70 px-2 text-sm shadow-sm transition-all focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30"
     >
       <option value="" disabled>
         Selecione...

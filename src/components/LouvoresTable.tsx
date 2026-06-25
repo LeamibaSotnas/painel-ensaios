@@ -22,6 +22,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Sparkles,
   Star,
   Trash2,
   X,
@@ -45,6 +46,7 @@ import type {
   LouvorPlanilha,
   NovoLouvorInput,
 } from "@/types/database.types";
+import type { ResultadoBuscaYoutube } from "@/core/utils/youtube";
 
 export interface LouvoresTableProps {
   /** Linhas da planilha do departamento atual. */
@@ -73,6 +75,8 @@ export interface LouvoresTableProps {
   onBuscarMetadadosYoutube: (
     url: string
   ) => Promise<{ titulo: string; thumbnail: string } | null>;
+  /** Busca inteligente por título/cantor (YouTube Data API, quando configurada). */
+  onBuscarVideosYoutube: (query: string) => Promise<ResultadoBuscaYoutube[] | null>;
 }
 
 type DraftLouvor = LouvorEditavel;
@@ -116,6 +120,7 @@ export function LouvoresTable({
   onMarcarExecutado,
   onAtualizarDetalhes,
   onBuscarMetadadosYoutube,
+  onBuscarVideosYoutube,
 }: LouvoresTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "ordem_execucao", desc: false },
@@ -131,6 +136,11 @@ export function LouvoresTable({
   const [isSavingNewRow, setIsSavingNewRow] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
   const [buscandoMetadados, setBuscandoMetadados] = React.useState(false);
+  const [buscandoVideos, setBuscandoVideos] = React.useState(false);
+  const [painelBusca, setPainelBusca] = React.useState<{
+    contexto: "editing" | "novo";
+    resultados: ResultadoBuscaYoutube[];
+  } | null>(null);
 
   // --- filtros ---------------------------------------------------------
   const [busca, setBusca] = React.useState("");
@@ -284,6 +294,116 @@ export function LouvoresTable({
     } finally {
       setBuscandoMetadados(false);
     }
+  }
+
+  async function buscarVideos(contexto: "editing" | "novo") {
+    const origem = contexto === "editing" ? draft : newRowDraft;
+    const query = [origem.nome_louvor, origem.cantor_banda].filter(Boolean).join(" ").trim();
+    if (!query) {
+      setErro("Digite o nome do louvor (e o cantor, se tiver) antes de buscar.");
+      return;
+    }
+    setErro(null);
+    setBuscandoVideos(true);
+    try {
+      const resultados = await onBuscarVideosYoutube(query);
+      if (resultados === null) {
+        // Sem busca inteligente configurada: abre a busca do YouTube numa nova aba.
+        window.open(
+          `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
+          "_blank",
+          "noopener,noreferrer"
+        );
+        return;
+      }
+      setPainelBusca({ contexto, resultados });
+    } catch {
+      setErro("Não foi possível buscar no YouTube agora.");
+    } finally {
+      setBuscandoVideos(false);
+    }
+  }
+
+  function selecionarVideoBusca(contexto: "editing" | "novo", resultado: ResultadoBuscaYoutube) {
+    const aplicar = (d: DraftLouvor): DraftLouvor => ({
+      ...d,
+      link_youtube: `https://www.youtube.com/watch?v=${resultado.id}`,
+      youtube_titulo: resultado.titulo || d.youtube_titulo,
+      youtube_thumbnail: resultado.thumbnail,
+    });
+    if (contexto === "editing") {
+      setDraft(aplicar);
+    } else {
+      setNewRowDraft(aplicar);
+    }
+    setPainelBusca(null);
+  }
+
+  function PainelBuscaYoutube({ contexto }: { contexto: "editing" | "novo" }) {
+    if (!painelBusca || painelBusca.contexto !== contexto) return null;
+    return (
+      <div className="absolute left-0 top-full z-20 mt-1 w-72 max-w-[90vw] rounded-xl border border-violet-100 bg-white p-1.5 shadow-lg shadow-violet-900/15">
+        <div className="flex items-center justify-between px-1.5 pb-1">
+          <span className="text-[11px] font-medium text-muted-foreground">
+            Resultados do YouTube
+          </span>
+          <button
+            type="button"
+            onClick={() => setPainelBusca(null)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        {painelBusca.resultados.length === 0 ? (
+          <p className="px-1.5 py-2 text-xs text-muted-foreground">Nenhum resultado encontrado.</p>
+        ) : (
+          <div className="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
+            {painelBusca.resultados.map((resultado) => (
+              <button
+                key={resultado.id}
+                type="button"
+                onClick={() => selecionarVideoBusca(contexto, resultado)}
+                className="flex items-center gap-2 rounded-lg p-1.5 text-left transition-colors hover:bg-violet-50"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={resultado.thumbnail}
+                  alt=""
+                  className="h-9 w-16 shrink-0 rounded-md object-cover"
+                />
+                <span className="flex flex-col overflow-hidden">
+                  <span className="truncate text-xs font-medium">{resultado.titulo}</span>
+                  <span className="truncate text-[10px] text-muted-foreground">
+                    {resultado.canal}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function BotaoBuscarYoutube({ contexto }: { contexto: "editing" | "novo" }) {
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 shrink-0 text-violet-600 hover:bg-violet-100 hover:text-violet-700"
+        title="Busca inteligente no YouTube"
+        disabled={buscandoVideos}
+        onClick={() => buscarVideos(contexto)}
+      >
+        {buscandoVideos ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Sparkles className="h-3.5 w-3.5" />
+        )}
+      </Button>
+    );
   }
 
   async function salvarNovaLinha() {
@@ -478,7 +598,7 @@ export function LouvoresTable({
             return <CartaoYoutube linha={linha} />;
           }
           return (
-            <div className="flex items-center gap-1">
+            <div className="relative flex items-center gap-1">
               <Input
                 value={draft.link_youtube ?? ""}
                 onChange={(e) => setDraft((d) => ({ ...d, link_youtube: e.target.value }))}
@@ -492,11 +612,13 @@ export function LouvoresTable({
                   )
                 }
                 placeholder="https://youtube.com/..."
-                className="h-8 w-44"
+                className="h-8 w-40"
               />
+              <BotaoBuscarYoutube contexto="editing" />
               {buscandoMetadados && (
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
               )}
+              <PainelBuscaYoutube contexto="editing" />
             </div>
           );
         },
@@ -626,7 +748,17 @@ export function LouvoresTable({
         },
       },
     ],
-    [draft, editingRowId, savingRowId, editavel, expandedId, buscandoMetadados]
+    [
+      draft,
+      newRowDraft,
+      editingRowId,
+      savingRowId,
+      editavel,
+      expandedId,
+      buscandoMetadados,
+      buscandoVideos,
+      painelBusca,
+    ]
   );
 
   const table = useReactTable({
@@ -659,7 +791,7 @@ export function LouvoresTable({
         <select
           value={filtroTom}
           onChange={(e) => setFiltroTom(e.target.value)}
-          className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+          className="h-8 rounded-lg border border-violet-200 bg-white/70 px-2 text-sm shadow-sm transition-all focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30"
         >
           <option value="">Todos os tons</option>
           {tonsDisponiveis.map((tom) => (
@@ -727,7 +859,7 @@ export function LouvoresTable({
                               Cifra
                             </span>
                             <textarea
-                              className="min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-70"
+                              className="min-h-24 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
                               placeholder="Cole aqui a cifra ou um link para ela"
                               value={detalhesDraft.cifra}
                               disabled={!editavel}
@@ -741,7 +873,7 @@ export function LouvoresTable({
                               Observações
                             </span>
                             <textarea
-                              className="min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-70"
+                              className="min-h-24 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
                               placeholder="Observações sobre o louvor"
                               value={detalhesDraft.observacoes}
                               disabled={!editavel}
@@ -820,10 +952,10 @@ export function LouvoresTable({
                   />
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-1">
+                  <div className="relative flex items-center gap-1">
                     <Input
                       placeholder="https://youtube.com/..."
-                      className="h-8 w-44"
+                      className="h-8 w-40"
                       value={newRowDraft.link_youtube ?? ""}
                       onChange={(e) =>
                         setNewRowDraft((d) => ({ ...d, link_youtube: e.target.value }))
@@ -838,9 +970,11 @@ export function LouvoresTable({
                         )
                       }
                     />
+                    <BotaoBuscarYoutube contexto="novo" />
                     {buscandoMetadados && (
                       <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                     )}
+                    <PainelBuscaYoutube contexto="novo" />
                   </div>
                 </TableCell>
                 <TableCell />
@@ -929,21 +1063,25 @@ export function LouvoresTable({
                       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     )}
                   </div>
-                  <Input
-                    value={draft.link_youtube ?? ""}
-                    onChange={(e) => setDraft((d) => ({ ...d, link_youtube: e.target.value }))}
-                    onBlur={(e) =>
-                      buscarMetadados(e.target.value, (m) =>
-                        setDraft((d) => ({
-                          ...d,
-                          youtube_titulo: m.titulo || d.youtube_titulo,
-                          youtube_thumbnail: m.thumbnail,
-                        }))
-                      )
-                    }
-                    placeholder="https://youtube.com/..."
-                    className="h-9"
-                  />
+                  <div className="relative flex items-center gap-1">
+                    <Input
+                      value={draft.link_youtube ?? ""}
+                      onChange={(e) => setDraft((d) => ({ ...d, link_youtube: e.target.value }))}
+                      onBlur={(e) =>
+                        buscarMetadados(e.target.value, (m) =>
+                          setDraft((d) => ({
+                            ...d,
+                            youtube_titulo: m.titulo || d.youtube_titulo,
+                            youtube_thumbnail: m.thumbnail,
+                          }))
+                        )
+                      }
+                      placeholder="https://youtube.com/..."
+                      className="h-9"
+                    />
+                    <BotaoBuscarYoutube contexto="editing" />
+                    <PainelBuscaYoutube contexto="editing" />
+                  </div>
                   <div className="flex justify-end gap-2 pt-1">
                     <Button variant="outline" size="sm" disabled={salvando} onClick={cancelarEdicao}>
                       <X className="mr-1 h-4 w-4" /> Cancelar
@@ -1071,7 +1209,7 @@ export function LouvoresTable({
                       <div className="flex flex-col gap-1">
                         <span className="text-xs font-medium text-muted-foreground">Cifra</span>
                         <textarea
-                          className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-70"
+                          className="min-h-20 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
                           placeholder="Cole aqui a cifra ou um link para ela"
                           value={detalhesDraft.cifra}
                           disabled={!editavel}
@@ -1083,7 +1221,7 @@ export function LouvoresTable({
                           Observações
                         </span>
                         <textarea
-                          className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-70"
+                          className="min-h-20 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
                           placeholder="Observações sobre o louvor"
                           value={detalhesDraft.observacoes}
                           disabled={!editavel}
@@ -1144,7 +1282,7 @@ export function LouvoresTable({
                 value={newRowDraft.tonalidade}
                 onChange={(e) => setNewRowDraft((d) => ({ ...d, tonalidade: e.target.value }))}
               />
-              <div className="flex items-center gap-2">
+              <div className="relative flex items-center gap-2">
                 <Input
                   placeholder="https://youtube.com/..."
                   className="h-9"
@@ -1160,9 +1298,11 @@ export function LouvoresTable({
                     )
                   }
                 />
+                <BotaoBuscarYoutube contexto="novo" />
                 {buscandoMetadados && (
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 )}
+                <PainelBuscaYoutube contexto="novo" />
               </div>
               <div className="flex justify-end gap-2 pt-1">
                 <Button variant="outline" size="sm" disabled={isSavingNewRow} onClick={() => setIsAddingRow(false)}>

@@ -54,7 +54,14 @@ export function MobileNav({ usuario }: { usuario: Usuario }) {
             {ativo && (
               <span className="absolute top-0 h-0.5 w-8 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500" />
             )}
-            <Icon className={cn("h-5 w-5", ativo && "text-violet-600")} />
+            <span
+              className={cn(
+                "flex h-7 w-9 items-center justify-center rounded-full transition-colors",
+                ativo && "bg-gradient-to-br from-violet-100 to-fuchsia-100"
+              )}
+            >
+              <Icon className={cn("h-5 w-5", ativo && "text-violet-600")} />
+            </span>
             {label}
           </Link>
         );

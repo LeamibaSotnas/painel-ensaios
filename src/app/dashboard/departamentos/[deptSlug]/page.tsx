@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { LouvoresTable } from "@/components/LouvoresTable";
 import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
 import { gerarProximoCodigo } from "@/core/utils/code-generator";
-import { buscarMetadadosYoutube } from "@/core/utils/youtube";
+import { buscarMetadadosYoutube, buscarVideosYoutube } from "@/core/utils/youtube";
 import {
   alternarFavorito,
   atualizarDetalhesLouvor,
@@ -109,10 +109,17 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
     return buscarMetadadosYoutube(url);
   }
 
+  async function handleBuscarVideosYoutube(query: string) {
+    "use server";
+    return buscarVideosYoutube(query);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">{departamento.nome}</h1>
+        <h1 className="bg-gradient-to-r from-violet-700 via-fuchsia-600 to-amber-500 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+          {departamento.nome}
+        </h1>
         <p className="text-sm text-muted-foreground">
           Planilha de louvores — código {departamento.codigo_prefixo}1, {departamento.codigo_prefixo}2...
         </p>
@@ -131,6 +138,7 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
         onMarcarExecutado={handleMarcarExecutado}
         onAtualizarDetalhes={handleAtualizarDetalhes}
         onBuscarMetadadosYoutube={handleBuscarMetadadosYoutube}
+        onBuscarVideosYoutube={handleBuscarVideosYoutube}
       />
     </div>
   );

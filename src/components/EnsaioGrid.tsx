@@ -72,7 +72,7 @@ function SeletorDepartamento({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-8 w-36 rounded-md border border-input bg-background px-2 text-sm"
+      className="h-8 w-36 rounded-lg border border-violet-200 bg-white/70 px-2 text-sm shadow-sm transition-all focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30"
     >
       {departamentos.map((dep) => (
         <option key={dep.id} value={dep.id}>
@@ -106,7 +106,7 @@ function CamposExtras({
       />
       <textarea
         placeholder="Observações"
-        className="min-h-8 resize-none rounded-md border border-input bg-background px-3 py-1.5 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="min-h-8 resize-none rounded-lg border border-violet-200 bg-white/70 px-3 py-1.5 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30"
         rows={1}
         value={draft.observacoes}
         onChange={(e) => onChange({ observacoes: e.target.value })}

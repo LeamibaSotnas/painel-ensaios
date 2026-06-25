@@ -67,7 +67,9 @@ export default async function UsuariosPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Usuários</h1>
+        <h1 className="bg-gradient-to-r from-violet-700 via-fuchsia-600 to-amber-500 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+          Usuários
+        </h1>
         <p className="text-sm text-muted-foreground">
           Gerencie os usuários que têm acesso ao painel.
         </p>

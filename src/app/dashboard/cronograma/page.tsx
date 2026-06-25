@@ -44,7 +44,7 @@ export default async function CronogramaPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="bg-gradient-to-r from-violet-700 via-fuchsia-600 to-amber-500 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
           {ehAdmin ? "Cronograma geral" : "Cronograma do departamento"}
         </h1>
         <p className="text-sm text-muted-foreground">
