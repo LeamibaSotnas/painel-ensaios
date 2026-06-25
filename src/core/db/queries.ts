@@ -252,8 +252,8 @@ export async function listarLouvoresPorDepartamento(
   const db = await getDb();
   const { rows } = await db<LouvorPlanilha>`
     SELECT id, codigo_sequencial, departamento_id, nome_louvor, cantor_banda, tonalidade,
-           link_youtube, youtube_titulo, youtube_thumbnail, cifra, observacoes, favorito,
-           ultima_execucao, ordem_execucao
+           link_youtube, youtube_titulo, youtube_thumbnail, youtube_canal, cifra, observacoes,
+           favorito, ultima_execucao, vezes_executado, ordem_execucao, atualizado_em
     FROM louvores_planilha
     WHERE departamento_id = ${departamentoId}
     ORDER BY ordem_execucao ASC
@@ -274,12 +274,13 @@ export async function criarLouvor(valores: NovoLouvorInput, codigoSequencial: st
   await db`
     INSERT INTO louvores_planilha (
       id, codigo_sequencial, departamento_id, nome_louvor, cantor_banda, tonalidade,
-      link_youtube, youtube_titulo, youtube_thumbnail, ordem_execucao
+      link_youtube, youtube_titulo, youtube_thumbnail, youtube_canal, ordem_execucao, atualizado_em
     )
     VALUES (
       ${crypto.randomUUID()}, ${codigoSequencial}, ${valores.departamento_id}, ${valores.nome_louvor},
       ${valores.cantor_banda}, ${valores.tonalidade}, ${valores.link_youtube},
-      ${valores.youtube_titulo ?? null}, ${valores.youtube_thumbnail ?? null}, ${valores.ordem_execucao}
+      ${valores.youtube_titulo ?? null}, ${valores.youtube_thumbnail ?? null}, ${valores.youtube_canal ?? null},
+      ${valores.ordem_execucao}, now()::text
     )
   `;
 }
@@ -294,7 +295,9 @@ export async function atualizarLouvor(id: string, valores: LouvorEditavel): Prom
       link_youtube = ${valores.link_youtube},
       youtube_titulo = ${valores.youtube_titulo},
       youtube_thumbnail = ${valores.youtube_thumbnail},
-      ordem_execucao = ${valores.ordem_execucao}
+      youtube_canal = ${valores.youtube_canal},
+      ordem_execucao = ${valores.ordem_execucao},
+      atualizado_em = now()::text
     WHERE id = ${id}
   `;
 }
@@ -305,7 +308,8 @@ export async function atualizarDetalhesLouvor(
 ): Promise<void> {
   const db = await getDb();
   await db`
-    UPDATE louvores_planilha SET cifra = ${valores.cifra}, observacoes = ${valores.observacoes}
+    UPDATE louvores_planilha
+    SET cifra = ${valores.cifra}, observacoes = ${valores.observacoes}, atualizado_em = now()::text
     WHERE id = ${id}
   `;
 }
@@ -318,7 +322,11 @@ export async function alternarFavorito(id: string, favorito: boolean): Promise<v
 export async function marcarExecutado(id: string): Promise<void> {
   const db = await getDb();
   const hoje = new Date().toISOString().slice(0, 10);
-  await db`UPDATE louvores_planilha SET ultima_execucao = ${hoje} WHERE id = ${id}`;
+  await db`
+    UPDATE louvores_planilha
+    SET ultima_execucao = ${hoje}, vezes_executado = vezes_executado + 1, atualizado_em = now()::text
+    WHERE id = ${id}
+  `;
 }
 
 export async function removerLouvor(id: string): Promise<void> {
@@ -341,4 +349,92 @@ export async function listarOrdemPorDepartamento(
 export async function definirOrdemExecucao(id: string, ordemExecucao: number): Promise<void> {
   const db = await getDb();
   await db`UPDATE louvores_planilha SET ordem_execucao = ${ordemExecucao} WHERE id = ${id}`;
+}
+
+// ---------------------------------------------------------------------------
+// estatísticas (Visão Geral)
+// ---------------------------------------------------------------------------
+
+export interface MusicaMaisUsada {
+  id: string;
+  nome_louvor: string;
+  cantor_banda: string;
+  vezes_executado: number;
+  departamento_nome: string;
+}
+
+export interface AlteracaoRecente {
+  id: string;
+  nome_louvor: string;
+  cantor_banda: string;
+  atualizado_em: string;
+  departamento_nome: string;
+  departamento_slug: string;
+}
+
+export async function contarLouvores(departamentoId?: string): Promise<number> {
+  const db = await getDb();
+  const { rows } = departamentoId
+    ? await db<{ total: number }>`
+        SELECT COUNT(*)::int as total FROM louvores_planilha WHERE departamento_id = ${departamentoId}
+      `
+    : await db<{ total: number }>`SELECT COUNT(*)::int as total FROM louvores_planilha`;
+  return rows[0]?.total ?? 0;
+}
+
+export async function contarUsuarios(): Promise<number> {
+  const db = await getDb();
+  const { rows } = await db<{ total: number }>`SELECT COUNT(*)::int as total FROM usuarios`;
+  return rows[0]?.total ?? 0;
+}
+
+export async function listarMusicasMaisUsadas(
+  limite = 5,
+  departamentoId?: string
+): Promise<MusicaMaisUsada[]> {
+  const db = await getDb();
+  const { rows } = departamentoId
+    ? await db<MusicaMaisUsada>`
+        SELECT l.id, l.nome_louvor, l.cantor_banda, l.vezes_executado, d.nome as departamento_nome
+        FROM louvores_planilha l
+        JOIN departamentos d ON d.id = l.departamento_id
+        WHERE l.departamento_id = ${departamentoId} AND l.vezes_executado > 0
+        ORDER BY l.vezes_executado DESC, l.nome_louvor ASC
+        LIMIT ${limite}
+      `
+    : await db<MusicaMaisUsada>`
+        SELECT l.id, l.nome_louvor, l.cantor_banda, l.vezes_executado, d.nome as departamento_nome
+        FROM louvores_planilha l
+        JOIN departamentos d ON d.id = l.departamento_id
+        WHERE l.vezes_executado > 0
+        ORDER BY l.vezes_executado DESC, l.nome_louvor ASC
+        LIMIT ${limite}
+      `;
+  return rows;
+}
+
+export async function listarUltimasAlteracoes(
+  limite = 5,
+  departamentoId?: string
+): Promise<AlteracaoRecente[]> {
+  const db = await getDb();
+  const { rows } = departamentoId
+    ? await db<AlteracaoRecente>`
+        SELECT l.id, l.nome_louvor, l.cantor_banda, l.atualizado_em,
+               d.nome as departamento_nome, d.slug as departamento_slug
+        FROM louvores_planilha l
+        JOIN departamentos d ON d.id = l.departamento_id
+        WHERE l.departamento_id = ${departamentoId}
+        ORDER BY l.atualizado_em DESC
+        LIMIT ${limite}
+      `
+    : await db<AlteracaoRecente>`
+        SELECT l.id, l.nome_louvor, l.cantor_banda, l.atualizado_em,
+               d.nome as departamento_nome, d.slug as departamento_slug
+        FROM louvores_planilha l
+        JOIN departamentos d ON d.id = l.departamento_id
+        ORDER BY l.atualizado_em DESC
+        LIMIT ${limite}
+      `;
+  return rows;
 }

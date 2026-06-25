@@ -60,12 +60,15 @@ async function criarEsquema() {
       link_youtube TEXT,
       youtube_titulo TEXT,
       youtube_thumbnail TEXT,
+      youtube_canal TEXT,
       cifra TEXT NOT NULL DEFAULT '',
       observacoes TEXT NOT NULL DEFAULT '',
       favorito BOOLEAN NOT NULL DEFAULT false,
       ultima_execucao TEXT,
+      vezes_executado INTEGER NOT NULL DEFAULT 0,
       ordem_execucao INTEGER NOT NULL DEFAULT 1,
       criado_em TEXT NOT NULL DEFAULT now()::text,
+      atualizado_em TEXT NOT NULL DEFAULT now()::text,
       UNIQUE (departamento_id, codigo_sequencial)
     );
   `;
@@ -88,6 +91,9 @@ async function aplicarMigracoesDeColunas() {
   await sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS observacoes TEXT NOT NULL DEFAULT '';`;
   await sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS favorito BOOLEAN NOT NULL DEFAULT false;`;
   await sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS ultima_execucao TEXT;`;
+  await sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS youtube_canal TEXT;`;
+  await sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS vezes_executado INTEGER NOT NULL DEFAULT 0;`;
+  await sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS atualizado_em TEXT NOT NULL DEFAULT now()::text;`;
   await sql`ALTER TABLE ensaios_grade ADD COLUMN IF NOT EXISTS local TEXT NOT NULL DEFAULT '';`;
   await sql`ALTER TABLE ensaios_grade ADD COLUMN IF NOT EXISTS responsavel TEXT NOT NULL DEFAULT '';`;
   await sql`ALTER TABLE ensaios_grade ADD COLUMN IF NOT EXISTS observacoes TEXT NOT NULL DEFAULT '';`;

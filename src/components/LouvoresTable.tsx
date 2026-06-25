@@ -46,7 +46,7 @@ import type {
   LouvorPlanilha,
   NovoLouvorInput,
 } from "@/types/database.types";
-import type { ResultadoBuscaYoutube } from "@/core/utils/youtube";
+import { extrairIdYoutube, type ResultadoBuscaYoutube } from "@/core/utils/youtube";
 
 export interface LouvoresTableProps {
   /** Linhas da planilha do departamento atual. */
@@ -71,10 +71,10 @@ export interface LouvoresTableProps {
   onMarcarExecutado: (id: string) => Promise<void>;
   /** Salva cifra/observações (painel expansível por linha). */
   onAtualizarDetalhes: (id: string, valores: LouvorDetalhesEditavel) => Promise<void>;
-  /** Busca título + miniatura de um link do YouTube (oEmbed, sem download). */
+  /** Busca título + miniatura + canal de um link do YouTube (oEmbed, sem download). */
   onBuscarMetadadosYoutube: (
     url: string
-  ) => Promise<{ titulo: string; thumbnail: string } | null>;
+  ) => Promise<{ titulo: string; thumbnail: string; canal: string } | null>;
   /** Busca inteligente por título/cantor (YouTube Data API, quando configurada). */
   onBuscarVideosYoutube: (query: string) => Promise<ResultadoBuscaYoutube[] | null>;
 }
@@ -88,6 +88,7 @@ const DRAFT_VAZIO: DraftLouvor = {
   link_youtube: "",
   youtube_titulo: null,
   youtube_thumbnail: null,
+  youtube_canal: null,
   ordem_execucao: 0,
 };
 
@@ -104,6 +105,65 @@ function formatarDataCurta(data: string | null): string {
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
+  });
+}
+
+// Bloco Unicode "Combining Diacritical Marks" (U+0300–U+036F) — construído a
+// partir dos códigos de caractere (0x300 a 0x36f), para não depender de
+// glifos especiais armazenados diretamente no arquivo-fonte.
+const MARCAS_DIACRITICAS = new RegExp(`[\\u0300-\\u036f]`, "g");
+
+/** Remove acentos e normaliza para minúsculas, para comparações tolerantes. */
+function normalizarTexto(texto: string): string {
+  return texto.normalize("NFD").replace(MARCAS_DIACRITICAS, "").toLowerCase().trim();
+}
+
+/** Distância de Levenshtein simples — usada para tolerar pequenos erros de digitação. */
+function distanciaEdicao(a: string, b: string): number {
+  if (a === b) return 0;
+  const linhas = a.length;
+  const colunas = b.length;
+  if (linhas === 0) return colunas;
+  if (colunas === 0) return linhas;
+
+  let anterior = Array.from({ length: colunas + 1 }, (_, i) => i);
+  for (let i = 1; i <= linhas; i++) {
+    const atual = [i];
+    for (let j = 1; j <= colunas; j++) {
+      const custo = a[i - 1] === b[j - 1] ? 0 : 1;
+      atual[j] = Math.min(
+        atual[j - 1] + 1, // inserção
+        anterior[j] + 1, // remoção
+        anterior[j - 1] + custo // substituição
+      );
+    }
+    anterior = atual;
+  }
+  return anterior[colunas];
+}
+
+/**
+ * Busca inteligente "sem custo": tolerante a acentos e a pequenos erros de
+ * digitação, e capaz de encontrar o termo em qualquer parte do texto
+ * (nome, cantor, trecho da cifra/observações, tom ou código). Não usa
+ * nenhuma API de IA externa — tudo roda localmente, no navegador.
+ */
+function correspondeABusca(termoBusca: string, textoCompleto: string): boolean {
+  const termo = normalizarTexto(termoBusca);
+  if (!termo) return true;
+  const alvo = normalizarTexto(textoCompleto);
+  if (alvo.includes(termo)) return true;
+
+  // Tolerância a erro de digitação: compara cada palavra da busca com as
+  // palavras do texto, permitindo pequenas diferenças (1 erro a cada ~4 letras).
+  const palavrasBusca = termo.split(/\s+/).filter(Boolean);
+  const palavrasAlvo = alvo.split(/\s+/).filter(Boolean);
+  return palavrasBusca.every((palavraBusca) => {
+    if (palavraBusca.length < 3) return alvo.includes(palavraBusca);
+    const toleranciaMaxima = Math.max(1, Math.floor(palavraBusca.length / 4));
+    return palavrasAlvo.some(
+      (palavraAlvo) => distanciaEdicao(palavraBusca, palavraAlvo) <= toleranciaMaxima
+    );
   });
 }
 
@@ -163,14 +223,42 @@ export function LouvoresTable({
     return Array.from(tons).sort();
   }, [data]);
 
+  // Sugestões de autocomplete ao cadastrar uma música nova — evita duplicidade
+  // e agiliza a digitação reaproveitando nomes/cantores já usados no painel.
+  const sugestoesNomes = React.useMemo(() => {
+    const nomes = new Set<string>();
+    for (const linha of data) {
+      if (linha.nome_louvor) nomes.add(linha.nome_louvor);
+    }
+    return Array.from(nomes).sort();
+  }, [data]);
+
+  const sugestoesCantores = React.useMemo(() => {
+    const cantores = new Set<string>();
+    for (const linha of data) {
+      if (linha.cantor_banda) cantores.add(linha.cantor_banda);
+    }
+    return Array.from(cantores).sort();
+  }, [data]);
+
   const dadosFiltrados = React.useMemo(() => {
-    const termo = busca.trim().toLowerCase();
+    const termo = busca.trim();
     return data.filter((linha) => {
       if (somenteFavoritos && !linha.favorito) return false;
       if (filtroTom && linha.tonalidade !== filtroTom) return false;
       if (termo) {
-        const alvo = `${linha.nome_louvor} ${linha.cantor_banda}`.toLowerCase();
-        if (!alvo.includes(termo)) return false;
+        // Busca inteligente: nome, cantor, tom, código, trecho da cifra e
+        // observações — tolerante a acentos e a pequenos erros de digitação.
+        const alvo = [
+          linha.nome_louvor,
+          linha.cantor_banda,
+          linha.tonalidade,
+          linha.codigo_sequencial,
+          linha.cifra,
+          linha.observacoes,
+          linha.youtube_canal ?? "",
+        ].join(" ");
+        if (!correspondeABusca(termo, alvo)) return false;
       }
       return true;
     });
@@ -186,6 +274,7 @@ export function LouvoresTable({
       link_youtube: linha.link_youtube,
       youtube_titulo: linha.youtube_titulo,
       youtube_thumbnail: linha.youtube_thumbnail,
+      youtube_canal: linha.youtube_canal,
       ordem_execucao: linha.ordem_execucao,
     });
   }
@@ -206,6 +295,7 @@ export function LouvoresTable({
         link_youtube: normalizarLinkYoutube(draft.link_youtube),
         youtube_titulo: draft.youtube_titulo,
         youtube_thumbnail: draft.youtube_thumbnail,
+        youtube_canal: draft.youtube_canal,
         ordem_execucao: draft.ordem_execucao,
       });
       setEditingRowId(null);
@@ -282,7 +372,10 @@ export function LouvoresTable({
     }
   }
 
-  async function buscarMetadados(link: string, aplicar: (m: { titulo: string; thumbnail: string }) => void) {
+  async function buscarMetadados(
+    link: string,
+    aplicar: (m: { titulo: string; thumbnail: string; canal: string }) => void
+  ) {
     const linkNormalizado = normalizarLinkYoutube(link);
     if (!linkNormalizado) return;
     setBuscandoMetadados(true);
@@ -330,6 +423,7 @@ export function LouvoresTable({
       link_youtube: `https://www.youtube.com/watch?v=${resultado.id}`,
       youtube_titulo: resultado.titulo || d.youtube_titulo,
       youtube_thumbnail: resultado.thumbnail,
+      youtube_canal: resultado.canal || d.youtube_canal,
     });
     if (contexto === "editing") {
       setDraft(aplicar);
@@ -422,6 +516,7 @@ export function LouvoresTable({
         link_youtube: normalizarLinkYoutube(newRowDraft.link_youtube),
         youtube_titulo: newRowDraft.youtube_titulo,
         youtube_thumbnail: newRowDraft.youtube_thumbnail,
+        youtube_canal: newRowDraft.youtube_canal,
         ordem_execucao: newRowDraft.ordem_execucao,
       });
       setIsAddingRow(false);
@@ -469,11 +564,44 @@ export function LouvoresTable({
           <span className="truncate text-xs font-medium group-hover:underline">
             {linha.youtube_titulo || "Vídeo"}
           </span>
-          <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-            Abrir <ExternalLink className="h-2.5 w-2.5" />
-          </span>
+          {linha.youtube_canal ? (
+            <span className="truncate text-[10px] text-muted-foreground">{linha.youtube_canal}</span>
+          ) : (
+            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+              Abrir <ExternalLink className="h-2.5 w-2.5" />
+            </span>
+          )}
         </span>
       </a>
+    );
+  }
+
+  /** Player do YouTube incorporado, exibido no painel expansível de cada linha. */
+  function PlayerYoutube({ linha }: { linha: LouvorPlanilha }) {
+    const videoId = linha.link_youtube ? extrairIdYoutube(linha.link_youtube) : null;
+    if (!videoId) return null;
+    return (
+      <div className="flex flex-col gap-1.5 sm:col-span-2">
+        <div className="flex items-center justify-between">
+          <span className="truncate text-xs font-medium">
+            {linha.youtube_titulo || "Vídeo"}
+          </span>
+          {linha.youtube_canal && (
+            <span className="shrink-0 truncate text-[11px] text-muted-foreground">
+              {linha.youtube_canal}
+            </span>
+          )}
+        </div>
+        <div className="aspect-video w-full max-w-md overflow-hidden rounded-xl border border-violet-100 shadow-sm">
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}`}
+            title={linha.youtube_titulo || "Player do YouTube"}
+            className="h-full w-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      </div>
     );
   }
 
@@ -608,6 +736,7 @@ export function LouvoresTable({
                       ...d,
                       youtube_titulo: m.titulo || d.youtube_titulo,
                       youtube_thumbnail: m.thumbnail,
+                      youtube_canal: m.canal || d.youtube_canal,
                     }))
                   )
                 }
@@ -772,6 +901,18 @@ export function LouvoresTable({
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Listas de autocomplete (nativas do navegador) para o cadastro de músicas novas. */}
+      <datalist id="lista-nomes-louvor">
+        {sugestoesNomes.map((nome) => (
+          <option key={nome} value={nome} />
+        ))}
+      </datalist>
+      <datalist id="lista-cantores-banda">
+        {sugestoesCantores.map((cantor) => (
+          <option key={cantor} value={cantor} />
+        ))}
+      </datalist>
+
       {erro && (
         <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {erro}
@@ -784,7 +925,7 @@ export function LouvoresTable({
           <Input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome ou cantor..."
+            placeholder="Buscar por nome, cantor, tom, trecho da cifra..."
             className="h-8 pl-8"
           />
         </div>
@@ -854,12 +995,13 @@ export function LouvoresTable({
                     <TableRow className="bg-muted/20">
                       <TableCell colSpan={columns.length} className="space-y-2 py-3">
                         <div className="grid gap-3 sm:grid-cols-2">
+                          <PlayerYoutube linha={linha} />
                           <div className="flex flex-col gap-1">
                             <span className="text-xs font-medium text-muted-foreground">
                               Cifra
                             </span>
                             <textarea
-                              className="min-h-24 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
+                              className="caderno-linhas min-h-24 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
                               placeholder="Cole aqui a cifra ou um link para ela"
                               value={detalhesDraft.cifra}
                               disabled={!editavel}
@@ -873,7 +1015,7 @@ export function LouvoresTable({
                               Observações
                             </span>
                             <textarea
-                              className="min-h-24 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
+                              className="caderno-linhas min-h-24 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
                               placeholder="Observações sobre o louvor"
                               value={detalhesDraft.observacoes}
                               disabled={!editavel}
@@ -925,6 +1067,7 @@ export function LouvoresTable({
                     autoFocus
                     placeholder="Nome do louvor"
                     className="h-8"
+                    list="lista-nomes-louvor"
                     value={newRowDraft.nome_louvor}
                     onChange={(e) =>
                       setNewRowDraft((d) => ({ ...d, nome_louvor: e.target.value }))
@@ -935,6 +1078,7 @@ export function LouvoresTable({
                   <Input
                     placeholder="Cantor, compositor ou banda/grupo"
                     className="h-8"
+                    list="lista-cantores-banda"
                     value={newRowDraft.cantor_banda}
                     onChange={(e) =>
                       setNewRowDraft((d) => ({ ...d, cantor_banda: e.target.value }))
@@ -966,6 +1110,7 @@ export function LouvoresTable({
                             ...d,
                             youtube_titulo: m.titulo || d.youtube_titulo,
                             youtube_thumbnail: m.thumbnail,
+                            youtube_canal: m.canal || d.youtube_canal,
                           }))
                         )
                       }
@@ -1073,6 +1218,7 @@ export function LouvoresTable({
                             ...d,
                             youtube_titulo: m.titulo || d.youtube_titulo,
                             youtube_thumbnail: m.thumbnail,
+                            youtube_canal: m.canal || d.youtube_canal,
                           }))
                         )
                       }
@@ -1206,10 +1352,11 @@ export function LouvoresTable({
 
                   {expandido && (
                     <div className="mt-2.5 space-y-2 border-t pt-2.5">
+                      <PlayerYoutube linha={linha} />
                       <div className="flex flex-col gap-1">
                         <span className="text-xs font-medium text-muted-foreground">Cifra</span>
                         <textarea
-                          className="min-h-20 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
+                          className="caderno-linhas min-h-20 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
                           placeholder="Cole aqui a cifra ou um link para ela"
                           value={detalhesDraft.cifra}
                           disabled={!editavel}
@@ -1221,7 +1368,7 @@ export function LouvoresTable({
                           Observações
                         </span>
                         <textarea
-                          className="min-h-20 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
+                          className="caderno-linhas min-h-20 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
                           placeholder="Observações sobre o louvor"
                           value={detalhesDraft.observacoes}
                           disabled={!editavel}
@@ -1267,12 +1414,14 @@ export function LouvoresTable({
                 autoFocus
                 placeholder="Nome do louvor"
                 className="h-9"
+                list="lista-nomes-louvor"
                 value={newRowDraft.nome_louvor}
                 onChange={(e) => setNewRowDraft((d) => ({ ...d, nome_louvor: e.target.value }))}
               />
               <Input
                 placeholder="Cantor, compositor ou banda/grupo"
                 className="h-9"
+                list="lista-cantores-banda"
                 value={newRowDraft.cantor_banda}
                 onChange={(e) => setNewRowDraft((d) => ({ ...d, cantor_banda: e.target.value }))}
               />
@@ -1294,6 +1443,7 @@ export function LouvoresTable({
                         ...d,
                         youtube_titulo: m.titulo || d.youtube_titulo,
                         youtube_thumbnail: m.thumbnail,
+                        youtube_canal: m.canal || d.youtube_canal,
                       }))
                     )
                   }

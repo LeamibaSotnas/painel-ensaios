@@ -73,6 +73,8 @@ export interface LouvorPlanilha {
   youtube_titulo: string | null;
   /** URL da miniatura capturada automaticamente via oEmbed do YouTube. */
   youtube_thumbnail: string | null;
+  /** Nome do canal, capturado automaticamente via oEmbed do YouTube. */
+  youtube_canal: string | null;
   /** Cifra (texto livre ou link para a cifra). */
   cifra: string;
   /** Observações livres sobre o louvor. */
@@ -81,7 +83,11 @@ export interface LouvorPlanilha {
   favorito: boolean;
   /** Data (ISO) da última vez que o louvor foi executado/ensaiado. */
   ultima_execucao: string | null;
+  /** Quantas vezes esse louvor já foi marcado como executado. */
+  vezes_executado: number;
   ordem_execucao: number;
+  /** Timestamp (ISO) da última alteração de cadastro/edição dessa linha. */
+  atualizado_em: string;
 }
 
 /**
@@ -93,7 +99,7 @@ export type NovoLouvorInput = Pick<
   LouvorPlanilha,
   "departamento_id" | "nome_louvor" | "cantor_banda" | "tonalidade" | "link_youtube" | "ordem_execucao"
 > &
-  Partial<Pick<LouvorPlanilha, "youtube_titulo" | "youtube_thumbnail">>;
+  Partial<Pick<LouvorPlanilha, "youtube_titulo" | "youtube_thumbnail" | "youtube_canal">>;
 
 /** Campos que podem ser editados inline na planilha. */
 export type LouvorEditavel = Pick<
@@ -104,6 +110,7 @@ export type LouvorEditavel = Pick<
   | "link_youtube"
   | "youtube_titulo"
   | "youtube_thumbnail"
+  | "youtube_canal"
   | "ordem_execucao"
 >;
 

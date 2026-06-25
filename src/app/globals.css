@@ -93,3 +93,21 @@
     background-color: hsl(262 50% 60% / 0.6);
   }
 }
+
+@layer utilities {
+  /* Estilo "caderno inteligente": linhas horizontais suaves, como um planner
+     ou caderno executivo organizado — usado em áreas de anotação livre
+     (cifra, observações) para facilitar a leitura linha a linha sem perder
+     a estética moderna do app. */
+  .caderno-linhas {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 1.55rem,
+      hsl(262 40% 88% / 0.8) 1.55rem,
+      hsl(262 40% 88% / 0.8) calc(1.55rem + 1px)
+    );
+    background-position: 0 1.65rem;
+    line-height: 1.55rem;
+  }
+}

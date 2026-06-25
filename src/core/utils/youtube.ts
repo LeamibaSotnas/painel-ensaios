@@ -27,10 +27,12 @@ export function isLinkYoutubeValido(url: string): boolean {
 export interface MetadadosYoutube {
   titulo: string;
   thumbnail: string;
+  /** Nome do canal que publicou o vídeo. */
+  canal: string;
 }
 
 /**
- * Busca título e miniatura do vídeo via oEmbed público do YouTube.
+ * Busca título, miniatura e canal do vídeo via oEmbed público do YouTube.
  * Retorna `null` se o link for inválido ou a busca falhar (sem internet,
  * vídeo privado/removido, timeout, etc.) — o cadastro do link continua
  * funcionando normalmente mesmo sem os metadados.
@@ -47,16 +49,21 @@ export async function buscarMetadadosYoutube(url: string): Promise<MetadadosYout
       { signal: AbortSignal.timeout(5000) }
     );
     if (!resposta.ok) {
-      return { titulo: "", thumbnail: `https://img.youtube.com/vi/${id}/hqdefault.jpg` };
+      return { titulo: "", thumbnail: `https://img.youtube.com/vi/${id}/hqdefault.jpg`, canal: "" };
     }
-    const dados = (await resposta.json()) as { title?: string; thumbnail_url?: string };
+    const dados = (await resposta.json()) as {
+      title?: string;
+      thumbnail_url?: string;
+      author_name?: string;
+    };
     return {
       titulo: dados.title ?? "",
       thumbnail: dados.thumbnail_url ?? `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
+      canal: dados.author_name ?? "",
     };
   } catch {
     // Sem conexão ou timeout: ainda garantimos uma miniatura padrão previsível.
-    return { titulo: "", thumbnail: `https://img.youtube.com/vi/${id}/hqdefault.jpg` };
+    return { titulo: "", thumbnail: `https://img.youtube.com/vi/${id}/hqdefault.jpg`, canal: "" };
   }
 }
 
