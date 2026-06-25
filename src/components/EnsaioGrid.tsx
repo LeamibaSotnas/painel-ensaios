@@ -186,21 +186,23 @@ function VisaoCalendario({ data }: { data: EnsaioGradeComDepartamento[] }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
         {celulas.map((celula, index) => {
           if (!celula.data) {
-            return <div key={`vazio-${index}`} className="min-h-20 rounded-md" />;
+            return <div key={`vazio-${index}`} className="min-h-12 rounded-md sm:min-h-20" />;
           }
           const ensaiosDoDia = ensaiosPorDia.get(celula.data) ?? [];
           const dia = Number(celula.data.slice(-2));
+          const visiveis = ensaiosDoDia.slice(0, 2);
+          const restantes = ensaiosDoDia.length - visiveis.length;
           return (
             <div
               key={celula.data}
-              className="min-h-20 rounded-md border bg-muted/20 p-1 text-xs"
+              className="min-h-12 rounded-md border bg-muted/20 p-0.5 text-[10px] sm:min-h-20 sm:p-1 sm:text-xs"
             >
               <span className="text-muted-foreground">{dia}</span>
-              <div className="mt-1 flex flex-col gap-0.5">
-                {ensaiosDoDia.map((ensaio) => (
+              <div className="mt-0.5 flex flex-col gap-0.5 sm:mt-1">
+                {visiveis.map((ensaio) => (
                   <span
                     key={ensaio.id}
                     className="truncate rounded bg-primary/10 px-1 py-0.5 text-primary"
@@ -209,6 +211,9 @@ function VisaoCalendario({ data }: { data: EnsaioGradeComDepartamento[] }) {
                     {ensaio.hora_inicio.slice(0, 5)} {ensaio.departamento_nome}
                   </span>
                 ))}
+                {restantes > 0 && (
+                  <span className="text-muted-foreground">+{restantes}</span>
+                )}
               </div>
             </div>
           );
@@ -328,7 +333,7 @@ export function EnsaioGrid({
       {visao === "calendario" ? (
         <VisaoCalendario data={data} />
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="hidden overflow-x-auto rounded-lg border md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -548,6 +553,161 @@ export function EnsaioGrid({
               )}
             </TableBody>
           </Table>
+        </div>
+      )}
+
+      {/* Versão mobile — lista de cards, dedicada para telas pequenas */}
+      {visao === "lista" && (
+        <div className="flex flex-col gap-2.5 md:hidden">
+          {data.length === 0 && !isAdding && (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Nenhum ensaio agendado ainda.
+            </p>
+          )}
+
+          {data.map((ensaio) => {
+            const emEdicao = editingId === ensaio.id;
+            const salvando = savingId === ensaio.id;
+
+            return (
+              <div
+                key={ensaio.id}
+                className={cn("rounded-lg border bg-white/70 p-3", emEdicao && "bg-muted/40")}
+              >
+                {emEdicao ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="date"
+                        className="h-9 flex-1"
+                        value={draft.data}
+                        onChange={(e) => setDraft((d) => ({ ...d, data: e.target.value }))}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="time"
+                        className="h-9 flex-1"
+                        value={draft.hora_inicio}
+                        onChange={(e) => setDraft((d) => ({ ...d, hora_inicio: e.target.value }))}
+                      />
+                      <Input
+                        type="time"
+                        className="h-9 flex-1"
+                        value={draft.hora_fim}
+                        onChange={(e) => setDraft((d) => ({ ...d, hora_fim: e.target.value }))}
+                      />
+                    </div>
+                    <SeletorDepartamento
+                      value={draft.departamento_id}
+                      onChange={(id) => setDraft((d) => ({ ...d, departamento_id: id }))}
+                      departamentos={departamentos}
+                    />
+                    <CamposExtras
+                      draft={draft}
+                      onChange={(valores) => setDraft((d) => ({ ...d, ...valores }))}
+                    />
+                    <div className="flex justify-end gap-2 pt-1">
+                      <Button variant="outline" size="sm" disabled={salvando} onClick={cancelarEdicao}>
+                        <X className="mr-1 h-4 w-4" /> Cancelar
+                      </Button>
+                      <Button size="sm" disabled={salvando} onClick={() => salvarEdicao(ensaio.id)}>
+                        {salvando ? (
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="mr-1 h-4 w-4" />
+                        )}
+                        Salvar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-medium capitalize leading-tight">
+                        {formatarDataExibicao(ensaio.data)}
+                      </span>
+                      <Badge variant="outline">{ensaio.departamento_nome}</Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {ensaio.hora_inicio.slice(0, 5)} – {ensaio.hora_fim.slice(0, 5)}
+                    </p>
+                    {(ensaio.local || ensaio.responsavel || ensaio.observacoes) && (
+                      <div className="mt-1.5 flex flex-col gap-0.5 text-xs text-muted-foreground">
+                        {(ensaio.local || ensaio.responsavel) && (
+                          <span>{[ensaio.local, ensaio.responsavel].filter(Boolean).join(" · ")}</span>
+                        )}
+                        {ensaio.observacoes && <span>{ensaio.observacoes}</span>}
+                      </div>
+                    )}
+                    <div className="mt-2.5 flex justify-end gap-1 border-t pt-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => iniciarEdicao(ensaio)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-600 hover:text-red-700"
+                        disabled={salvando}
+                        onClick={() => remover(ensaio.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+
+          {isAdding && (
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="flex flex-col gap-2">
+                <Input
+                  type="date"
+                  className="h-9"
+                  value={novoDraft.data}
+                  onChange={(e) => setNovoDraft((d) => ({ ...d, data: e.target.value }))}
+                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="time"
+                    className="h-9 flex-1"
+                    value={novoDraft.hora_inicio}
+                    onChange={(e) => setNovoDraft((d) => ({ ...d, hora_inicio: e.target.value }))}
+                  />
+                  <Input
+                    type="time"
+                    className="h-9 flex-1"
+                    value={novoDraft.hora_fim}
+                    onChange={(e) => setNovoDraft((d) => ({ ...d, hora_fim: e.target.value }))}
+                  />
+                </div>
+                <SeletorDepartamento
+                  value={novoDraft.departamento_id}
+                  onChange={(id) => setNovoDraft((d) => ({ ...d, departamento_id: id }))}
+                  departamentos={departamentos}
+                />
+                <CamposExtras
+                  draft={novoDraft}
+                  onChange={(valores) => setNovoDraft((d) => ({ ...d, ...valores }))}
+                />
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button variant="outline" size="sm" disabled={isSavingNovo} onClick={() => setIsAdding(false)}>
+                    <X className="mr-1 h-4 w-4" /> Cancelar
+                  </Button>
+                  <Button size="sm" disabled={isSavingNovo} onClick={salvarNovo}>
+                    {isSavingNovo ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="mr-1 h-4 w-4" />
+                    )}
+                    Salvar
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

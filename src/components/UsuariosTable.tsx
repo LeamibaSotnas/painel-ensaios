@@ -226,7 +226,7 @@ export function UsuariosTable({
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="hidden overflow-x-auto rounded-lg border md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -427,6 +427,138 @@ export function UsuariosTable({
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Versão mobile — lista de cards, dedicada para telas pequenas */}
+      <div className="flex flex-col gap-2.5 md:hidden">
+        {data.map((usuario) => {
+          const emEdicao = editingId === usuario.id;
+          const salvando = savingId === usuario.id;
+          const ehUsuarioAtual = usuario.id === usuarioAtualId;
+
+          return (
+            <div
+              key={usuario.id}
+              className={cn("rounded-lg border bg-white/70 p-3", emEdicao && "bg-muted/40")}
+            >
+              {emEdicao ? (
+                <div className="flex flex-col gap-2">
+                  <Input
+                    className="h-9"
+                    value={draft.nome}
+                    onChange={(e) => setDraft((d) => ({ ...d, nome: e.target.value }))}
+                    autoFocus
+                  />
+                  <SeletorRegra
+                    value={draft.regra}
+                    onChange={(regra) => setDraft((d) => ({ ...d, regra }))}
+                  />
+                  <SeletorDepartamento
+                    value={draft.departamentoId}
+                    onChange={(id) => setDraft((d) => ({ ...d, departamentoId: id }))}
+                    departamentos={departamentos}
+                    disabled={draft.regra === "ADMIN"}
+                  />
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button variant="outline" size="sm" disabled={salvando} onClick={cancelarEdicao}>
+                      <X className="mr-1 h-4 w-4" /> Cancelar
+                    </Button>
+                    <Button size="sm" disabled={salvando} onClick={() => salvarEdicao(usuario.id)}>
+                      {salvando ? (
+                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="mr-1 h-4 w-4" />
+                      )}
+                      Salvar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-medium leading-tight">
+                      {usuario.nome}
+                      {ehUsuarioAtual && (
+                        <span className="ml-2 text-xs text-muted-foreground">(você)</span>
+                      )}
+                    </span>
+                    <Badge variant={VARIANTE_BADGE_REGRA[usuario.regra]}>{usuario.regra}</Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{usuario.email}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {usuario.regra === "ADMIN" ? "Todos os departamentos" : usuario.departamento_nome ?? "—"}
+                  </p>
+                  <div className="mt-2.5 flex justify-end gap-1 border-t pt-2">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => iniciarEdicao(usuario)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-red-600 hover:text-red-700"
+                      disabled={salvando || ehUsuarioAtual}
+                      title={ehUsuarioAtual ? "Você não pode remover sua própria conta" : undefined}
+                      onClick={() => remover(usuario.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+
+        {isCriando && (
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <div className="flex flex-col gap-2">
+              <Input
+                className="h-9"
+                placeholder="Nome"
+                value={novoUsuarioDraft.nome}
+                onChange={(e) => setNovoUsuarioDraft((d) => ({ ...d, nome: e.target.value }))}
+                autoFocus
+              />
+              <Input
+                className="h-9"
+                type="email"
+                placeholder="email@igreja.org"
+                value={novoUsuarioDraft.email}
+                onChange={(e) => setNovoUsuarioDraft((d) => ({ ...d, email: e.target.value }))}
+              />
+              <Input
+                className="h-9"
+                type="password"
+                placeholder="Senha"
+                value={novoUsuarioDraft.senha}
+                onChange={(e) => setNovoUsuarioDraft((d) => ({ ...d, senha: e.target.value }))}
+              />
+              <SeletorRegra
+                value={novoUsuarioDraft.regra}
+                onChange={(regra) => setNovoUsuarioDraft((d) => ({ ...d, regra }))}
+              />
+              <SeletorDepartamento
+                value={novoUsuarioDraft.departamentoId}
+                onChange={(id) => setNovoUsuarioDraft((d) => ({ ...d, departamentoId: id }))}
+                departamentos={departamentos}
+                disabled={novoUsuarioDraft.regra === "ADMIN"}
+              />
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="outline" size="sm" disabled={isSavingNovoUsuario} onClick={() => setIsCriando(false)}>
+                  <X className="mr-1 h-4 w-4" /> Cancelar
+                </Button>
+                <Button size="sm" disabled={isSavingNovoUsuario} onClick={salvarNovoUsuario}>
+                  {isSavingNovoUsuario ? (
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="mr-1 h-4 w-4" />
+                  )}
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {!isCriando && (

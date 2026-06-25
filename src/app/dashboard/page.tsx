@@ -36,19 +36,19 @@ export default async function VisaoGeralPage() {
           {proximosEnsaios.map((ensaio) => (
             <li
               key={ensaio.id}
-              className="flex items-center justify-between rounded-lg border p-4"
+              className="flex flex-col gap-2 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
             >
-              <div className="flex items-center gap-3">
-                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              <div className="flex flex-wrap items-center gap-3">
+                <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="text-sm font-medium capitalize">
                   {formatarData(ensaio.data)}
                 </span>
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
                   {ensaio.hora_inicio.slice(0, 5)} – {ensaio.hora_fim.slice(0, 5)}
                 </span>
               </div>
-              <Badge variant="secondary">{ensaio.departamento_nome}</Badge>
+              <Badge variant="secondary" className="w-fit">{ensaio.departamento_nome}</Badge>
             </li>
           ))}
         </ul>

@@ -679,7 +679,7 @@ export function LouvoresTable({
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="hidden overflow-x-auto rounded-lg border md:block">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -877,6 +877,309 @@ export function LouvoresTable({
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Versão mobile — lista de cards, dedicada para telas pequenas */}
+      <div className="flex flex-col gap-2.5 md:hidden">
+        {dadosFiltrados.length === 0 && !isAddingRow && (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            {data.length === 0
+              ? `Nenhum louvor cadastrado para ${codigoPrefixo} ainda.`
+              : "Nenhum louvor encontrado com esses filtros."}
+          </p>
+        )}
+
+        {table.getRowModel().rows.map((row) => {
+          const linha = row.original;
+          const emEdicao = editingRowId === linha.id;
+          const expandido = expandedId === linha.id;
+          const salvando = savingRowId === linha.id;
+
+          return (
+            <div
+              key={linha.id}
+              className={cn(
+                "rounded-lg border bg-white/70 p-3",
+                emEdicao && "bg-muted/40"
+              )}
+            >
+              {emEdicao ? (
+                <div className="flex flex-col gap-2">
+                  <Input
+                    value={draft.nome_louvor}
+                    onChange={(e) => setDraft((d) => ({ ...d, nome_louvor: e.target.value }))}
+                    placeholder="Nome do louvor"
+                    className="h-9"
+                    autoFocus
+                  />
+                  <Input
+                    value={draft.cantor_banda}
+                    onChange={(e) => setDraft((d) => ({ ...d, cantor_banda: e.target.value }))}
+                    placeholder="Cantor, compositor ou banda/grupo"
+                    className="h-9"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={draft.tonalidade}
+                      onChange={(e) => setDraft((d) => ({ ...d, tonalidade: e.target.value }))}
+                      placeholder="Tom (ex: G, Am)"
+                      className="h-9 w-28"
+                    />
+                    {buscandoMetadados && (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                  <Input
+                    value={draft.link_youtube ?? ""}
+                    onChange={(e) => setDraft((d) => ({ ...d, link_youtube: e.target.value }))}
+                    onBlur={(e) =>
+                      buscarMetadados(e.target.value, (m) =>
+                        setDraft((d) => ({
+                          ...d,
+                          youtube_titulo: m.titulo || d.youtube_titulo,
+                          youtube_thumbnail: m.thumbnail,
+                        }))
+                      )
+                    }
+                    placeholder="https://youtube.com/..."
+                    className="h-9"
+                  />
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button variant="outline" size="sm" disabled={salvando} onClick={cancelarEdicao}>
+                      <X className="mr-1 h-4 w-4" /> Cancelar
+                    </Button>
+                    <Button size="sm" disabled={salvando} onClick={() => salvarEdicao(linha.id)}>
+                      {salvando ? (
+                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="mr-1 h-4 w-4" />
+                      )}
+                      Salvar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-start justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => alternarExpandido(linha)}
+                      className="flex flex-1 items-start gap-1.5 text-left"
+                    >
+                      {expandido ? (
+                        <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                      )}
+                      <span>
+                        <span className="block font-medium leading-tight">{linha.nome_louvor}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {linha.cantor_banda || "—"}
+                        </span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => alternarFavorito(linha)}
+                      className="shrink-0 text-muted-foreground/50 transition-colors hover:text-amber-500"
+                      title={linha.favorito ? "Remover dos favoritos" : "Marcar como favorito"}
+                    >
+                      <Star
+                        className={cn("h-5 w-5", linha.favorito && "fill-amber-400 text-amber-500")}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <Badge variant="secondary" className="font-mono">
+                      {linha.codigo_sequencial}
+                    </Badge>
+                    {linha.tonalidade && <Badge variant="outline">{linha.tonalidade}</Badge>}
+                    <span className="text-xs text-muted-foreground">
+                      Última: {formatarDataCurta(linha.ultima_execucao)}
+                    </span>
+                  </div>
+
+                  <div className="mt-2">
+                    <CartaoYoutube linha={linha} />
+                  </div>
+
+                  <div className="mt-2.5 flex items-center justify-between border-t pt-2">
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      Ordem
+                      <span className="w-5 text-center font-medium tabular-nums text-foreground">
+                        {linha.ordem_execucao}
+                      </span>
+                      {editavel && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            disabled={salvando}
+                            onClick={() => reordenar(linha.id, "up")}
+                          >
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            disabled={salvando}
+                            onClick={() => reordenar(linha.id, "down")}
+                          >
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    {editavel && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground"
+                          disabled={salvando}
+                          title="Marcar como executado hoje"
+                          onClick={() => marcarExecutado(linha.id)}
+                        >
+                          <Calendar className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => iniciarEdicao(linha)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-600 hover:text-red-700"
+                          disabled={salvando}
+                          onClick={() => excluirLinha(linha.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {expandido && (
+                    <div className="mt-2.5 space-y-2 border-t pt-2.5">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-medium text-muted-foreground">Cifra</span>
+                        <textarea
+                          className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-70"
+                          placeholder="Cole aqui a cifra ou um link para ela"
+                          value={detalhesDraft.cifra}
+                          disabled={!editavel}
+                          onChange={(e) => setDetalhesDraft((d) => ({ ...d, cifra: e.target.value }))}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          Observações
+                        </span>
+                        <textarea
+                          className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-70"
+                          placeholder="Observações sobre o louvor"
+                          value={detalhesDraft.observacoes}
+                          disabled={!editavel}
+                          onChange={(e) =>
+                            setDetalhesDraft((d) => ({ ...d, observacoes: e.target.value }))
+                          }
+                        />
+                      </div>
+                      {editavel && (
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="outline" onClick={() => setExpandedId(null)}>
+                            Fechar
+                          </Button>
+                          <Button size="sm" disabled={savingDetalhes} onClick={() => salvarDetalhes(linha.id)}>
+                            {savingDetalhes ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Salvar"
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+
+        {isAddingRow && (
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="font-mono text-muted-foreground">
+                  {codigoPrefixo}?
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  Ordem {newRowDraft.ordem_execucao}
+                </span>
+              </div>
+              <Input
+                autoFocus
+                placeholder="Nome do louvor"
+                className="h-9"
+                value={newRowDraft.nome_louvor}
+                onChange={(e) => setNewRowDraft((d) => ({ ...d, nome_louvor: e.target.value }))}
+              />
+              <Input
+                placeholder="Cantor, compositor ou banda/grupo"
+                className="h-9"
+                value={newRowDraft.cantor_banda}
+                onChange={(e) => setNewRowDraft((d) => ({ ...d, cantor_banda: e.target.value }))}
+              />
+              <Input
+                placeholder="Tom"
+                className="h-9 w-28"
+                value={newRowDraft.tonalidade}
+                onChange={(e) => setNewRowDraft((d) => ({ ...d, tonalidade: e.target.value }))}
+              />
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="https://youtube.com/..."
+                  className="h-9"
+                  value={newRowDraft.link_youtube ?? ""}
+                  onChange={(e) => setNewRowDraft((d) => ({ ...d, link_youtube: e.target.value }))}
+                  onBlur={(e) =>
+                    buscarMetadados(e.target.value, (m) =>
+                      setNewRowDraft((d) => ({
+                        ...d,
+                        youtube_titulo: m.titulo || d.youtube_titulo,
+                        youtube_thumbnail: m.thumbnail,
+                      }))
+                    )
+                  }
+                />
+                {buscandoMetadados && (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="outline" size="sm" disabled={isSavingNewRow} onClick={() => setIsAddingRow(false)}>
+                  <X className="mr-1 h-4 w-4" /> Cancelar
+                </Button>
+                <Button size="sm" disabled={isSavingNewRow} onClick={salvarNovaLinha}>
+                  {isSavingNewRow ? (
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="mr-1 h-4 w-4" />
+                  )}
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {editavel && !isAddingRow && (

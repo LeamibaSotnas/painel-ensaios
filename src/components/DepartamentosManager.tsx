@@ -124,7 +124,7 @@ export function DepartamentosManager({
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="hidden overflow-x-auto rounded-lg border md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -306,6 +306,155 @@ export function DepartamentosManager({
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Versão mobile — lista de cards, dedicada para telas pequenas */}
+      <div className="flex flex-col gap-2.5 md:hidden">
+        {data.map((departamento) => {
+          const emEdicao = editingId === departamento.id;
+          const salvando = savingId === departamento.id;
+          const confirmandoRemocao = confirmandoRemocaoId === departamento.id;
+
+          return (
+            <div
+              key={departamento.id}
+              className={cn("rounded-lg border bg-white/70 p-3", emEdicao && "bg-muted/40")}
+            >
+              {emEdicao ? (
+                <div className="flex flex-col gap-2">
+                  <Input
+                    className="h-9"
+                    value={draft.nome}
+                    onChange={(e) => setDraft((d) => ({ ...d, nome: e.target.value }))}
+                    autoFocus
+                  />
+                  <Input
+                    className="h-9 w-28 font-mono uppercase"
+                    value={draft.codigoPrefixo}
+                    onChange={(e) => setDraft((d) => ({ ...d, codigoPrefixo: e.target.value }))}
+                    maxLength={6}
+                  />
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button variant="outline" size="sm" disabled={salvando} onClick={cancelarEdicao}>
+                      <X className="mr-1 h-4 w-4" /> Cancelar
+                    </Button>
+                    <Button size="sm" disabled={salvando} onClick={() => salvarEdicao(departamento.id)}>
+                      {salvando ? (
+                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="mr-1 h-4 w-4" />
+                      )}
+                      Salvar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-medium leading-tight">{departamento.nome}</span>
+                    <span className="font-mono text-sm text-muted-foreground">
+                      {departamento.codigo_prefixo}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{departamento.slug}</p>
+
+                  {confirmandoRemocao ? (
+                    <div className="mt-2.5 flex items-center justify-between gap-2 border-t pt-2">
+                      <span className="text-xs text-muted-foreground">
+                        Remover e apagar todos os louvores?
+                      </span>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-600 hover:text-red-700"
+                          disabled={salvando}
+                          onClick={() => remover(departamento.id)}
+                        >
+                          {salvando ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          disabled={salvando}
+                          onClick={() => setConfirmandoRemocaoId(null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-2.5 flex justify-end gap-1 border-t pt-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => iniciarEdicao(departamento)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-600 hover:text-red-700"
+                        onClick={() => setConfirmandoRemocaoId(departamento.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+
+        {isCriando && (
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <div className="flex flex-col gap-2">
+              <Input
+                className="h-9"
+                placeholder="Ex: Jovens"
+                value={novoDraft.nome}
+                onChange={(e) => setNovoDraft((d) => ({ ...d, nome: e.target.value }))}
+                autoFocus
+              />
+              <Input
+                className="h-9 w-28 font-mono uppercase"
+                placeholder="Ex: SA"
+                value={novoDraft.codigoPrefixo}
+                onChange={(e) => setNovoDraft((d) => ({ ...d, codigoPrefixo: e.target.value }))}
+                maxLength={6}
+              />
+              <div className="flex justify-end gap-2 pt-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isSavingNovo}
+                  onClick={() => {
+                    setIsCriando(false);
+                    setNovoDraft(DRAFT_VAZIO);
+                  }}
+                >
+                  <X className="mr-1 h-4 w-4" /> Cancelar
+                </Button>
+                <Button size="sm" disabled={isSavingNovo} onClick={salvarNovoDepartamento}>
+                  {isSavingNovo ? (
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="mr-1 h-4 w-4" />
+                  )}
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {!isCriando && (

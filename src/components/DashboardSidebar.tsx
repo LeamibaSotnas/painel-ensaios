@@ -42,7 +42,7 @@ export function DashboardSidebar({ usuario }: { usuario: Usuario }) {
     : ITENS_BASE;
 
   return (
-    <aside className="flex w-60 flex-col gap-1 border-r border-white/60 bg-white/50 p-4 backdrop-blur-sm">
+    <aside className="hidden w-60 flex-col gap-1 border-r border-white/60 bg-white/50 p-4 backdrop-blur-sm md:flex">
       <div className="px-2 py-4">
         <p className="text-sm font-semibold leading-tight">
           Painel de Ensaios
