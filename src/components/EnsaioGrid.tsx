@@ -35,6 +35,8 @@ export type { EnsaioEditavel, EnsaioGradeComDepartamento };
 export interface EnsaioGridProps {
   data: EnsaioGradeComDepartamento[];
   departamentos: Departamento[];
+  /** Quando `false`, o cronograma fica somente leitura (sem agendar/editar/remover). */
+  editavel?: boolean;
   onAtualizarEnsaio: (id: string, valores: EnsaioEditavel) => Promise<void>;
   onAdicionarEnsaio: (valores: EnsaioEditavel) => Promise<void>;
   onRemoverEnsaio: (id: string) => Promise<void>;
@@ -226,6 +228,7 @@ function VisaoCalendario({ data }: { data: EnsaioGradeComDepartamento[] }) {
 export function EnsaioGrid({
   data,
   departamentos,
+  editavel = true,
   onAtualizarEnsaio,
   onAdicionarEnsaio,
   onRemoverEnsaio,
@@ -455,32 +458,34 @@ export function EnsaioGrid({
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => iniciarEdicao(ensaio)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-600 hover:text-red-700"
-                            disabled={salvando}
-                            onClick={() => remover(ensaio.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        editavel && (
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => iniciarEdicao(ensaio)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-600 hover:text-red-700"
+                              disabled={salvando}
+                              onClick={() => remover(ensaio.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )
                       )}
                     </TableCell>
                   </TableRow>
                 );
               })}
 
-              {isAdding && (
+              {editavel && isAdding && (
                 <TableRow className="bg-muted/30">
                   <TableCell>
                     <Input
@@ -640,27 +645,29 @@ export function EnsaioGrid({
                         {ensaio.observacoes && <span>{ensaio.observacoes}</span>}
                       </div>
                     )}
-                    <div className="mt-2.5 flex justify-end gap-1 border-t pt-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => iniciarEdicao(ensaio)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-600 hover:text-red-700"
-                        disabled={salvando}
-                        onClick={() => remover(ensaio.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    {editavel && (
+                      <div className="mt-2.5 flex justify-end gap-1 border-t pt-2">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => iniciarEdicao(ensaio)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-600 hover:text-red-700"
+                          disabled={salvando}
+                          onClick={() => remover(ensaio.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
             );
           })}
 
-          {isAdding && (
+          {editavel && isAdding && (
             <div className="rounded-lg border bg-muted/30 p-3">
               <div className="flex flex-col gap-2">
                 <Input
@@ -711,7 +718,7 @@ export function EnsaioGrid({
         </div>
       )}
 
-      {visao === "lista" && !isAdding && (
+      {editavel && visao === "lista" && !isAdding && (
         <Button
           variant="outline"
           size="sm"

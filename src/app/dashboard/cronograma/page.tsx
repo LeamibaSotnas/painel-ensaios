@@ -14,8 +14,10 @@ const CAMINHO_CRONOGRAMA = "/dashboard/cronograma";
 
 export default async function CronogramaPage() {
   const usuarioAtual = await getUsuarioAtual();
-  const ehAdmin = usuarioAtual?.regra === "ADMIN";
-  const meuDepartamentoId = ehAdmin ? undefined : usuarioAtual?.departamento_id ?? undefined;
+  const ehSuperAdminAtual = usuarioAtual?.regra === "ADMIN";
+  const meuDepartamentoId = ehSuperAdminAtual ? undefined : usuarioAtual?.departamento_id ?? undefined;
+  // Membro (MUSICOS) só visualiza o cronograma; os demais papéis podem agendar/editar/remover.
+  const podeEditarCronograma = usuarioAtual?.regra !== "MUSICOS";
 
   const departamentosTodos = await listarDepartamentos();
   const departamentos = meuDepartamentoId
@@ -25,18 +27,27 @@ export default async function CronogramaPage() {
 
   async function handleAtualizarEnsaio(id: string, valores: EnsaioEditavel) {
     "use server";
+    if (!podeEditarCronograma) {
+      throw new Error("Você não tem permissão para editar o cronograma.");
+    }
     await atualizarEnsaio(id, valores);
     revalidatePath(CAMINHO_CRONOGRAMA);
   }
 
   async function handleAdicionarEnsaio(valores: EnsaioEditavel) {
     "use server";
+    if (!podeEditarCronograma) {
+      throw new Error("Você não tem permissão para agendar ensaios.");
+    }
     await criarEnsaio(valores);
     revalidatePath(CAMINHO_CRONOGRAMA);
   }
 
   async function handleRemoverEnsaio(id: string) {
     "use server";
+    if (!podeEditarCronograma) {
+      throw new Error("Você não tem permissão para remover ensaios.");
+    }
     await removerEnsaio(id);
     revalidatePath(CAMINHO_CRONOGRAMA);
   }
@@ -45,10 +56,10 @@ export default async function CronogramaPage() {
     <div className="flex flex-col gap-6">
       <header>
         <h1 className="bg-gradient-to-r from-violet-700 via-fuchsia-600 to-amber-500 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
-          {ehAdmin ? "Cronograma geral" : "Cronograma do departamento"}
+          {ehSuperAdminAtual ? "Cronograma geral" : "Cronograma do departamento"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {ehAdmin
+          {ehSuperAdminAtual
             ? "Agenda de ensaios de todos os departamentos."
             : "Agenda de ensaios do seu departamento."}
         </p>
@@ -57,6 +68,7 @@ export default async function CronogramaPage() {
       <EnsaioGrid
         data={ensaios}
         departamentos={departamentos}
+        editavel={podeEditarCronograma}
         onAtualizarEnsaio={handleAtualizarEnsaio}
         onAdicionarEnsaio={handleAdicionarEnsaio}
         onRemoverEnsaio={handleRemoverEnsaio}
