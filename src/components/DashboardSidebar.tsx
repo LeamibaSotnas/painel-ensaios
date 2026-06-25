@@ -12,6 +12,7 @@ import {
 
 import { sair } from "@/app/login-actions";
 import { Button } from "@/components/ui/button";
+import { podeGerenciarUsuarios } from "@/core/auth/permissoes";
 import { cn } from "@/lib/utils";
 import type { Usuario } from "@/types/database.types";
 
@@ -35,9 +36,9 @@ const ITEM_USUARIOS: ItemNavegacao = {
 
 export function DashboardSidebar({ usuario }: { usuario: Usuario }) {
   const pathname = usePathname();
-  const podeGerenciarUsuarios = usuario.regra === "ADMIN";
+  const exibirItemUsuarios = podeGerenciarUsuarios(usuario);
 
-  const itens = podeGerenciarUsuarios
+  const itens = exibirItemUsuarios
     ? [...ITENS_BASE, ITEM_USUARIOS]
     : ITENS_BASE;
 

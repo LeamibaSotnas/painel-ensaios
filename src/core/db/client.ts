@@ -26,7 +26,7 @@ async function criarEsquema() {
       nome TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
       senha_hash TEXT NOT NULL,
-      regra TEXT NOT NULL CHECK (regra IN ('ADMIN', 'LIDER', 'MUSICOS')),
+      regra TEXT NOT NULL CHECK (regra IN ('ADMIN', 'ADMIN_PAINEL', 'LIDER', 'MUSICOS')),
       departamento_id TEXT REFERENCES departamentos (id) ON DELETE SET NULL,
       criado_em TEXT NOT NULL DEFAULT now()::text
     );
@@ -97,6 +97,12 @@ async function aplicarMigracoesDeColunas() {
   await sql`ALTER TABLE ensaios_grade ADD COLUMN IF NOT EXISTS local TEXT NOT NULL DEFAULT '';`;
   await sql`ALTER TABLE ensaios_grade ADD COLUMN IF NOT EXISTS responsavel TEXT NOT NULL DEFAULT '';`;
   await sql`ALTER TABLE ensaios_grade ADD COLUMN IF NOT EXISTS observacoes TEXT NOT NULL DEFAULT '';`;
+
+  // Amplia a regra CHECK de `usuarios` para aceitar o novo papel ADMIN_PAINEL
+  // (Administrador de Painel) em bancos já existentes — a constraint é recriada
+  // de forma idempotente a cada inicialização.
+  await sql`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_regra_check;`;
+  await sql`ALTER TABLE usuarios ADD CONSTRAINT usuarios_regra_check CHECK (regra IN ('ADMIN', 'ADMIN_PAINEL', 'LIDER', 'MUSICOS'));`;
 }
 
 async function semearDepartamentosPadrao() {

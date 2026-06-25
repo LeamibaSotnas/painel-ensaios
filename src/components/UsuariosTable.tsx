@@ -36,15 +36,25 @@ export interface UsuariosTableProps {
   departamentos: Departamento[];
   /** id do usuário logado — evita que ele remova/rebaixe a própria conta. */
   usuarioAtualId: string;
+  /** Papéis que o usuário logado tem permissão de atribuir a outros. */
+  regrasPermitidas?: RegraUsuario[];
   onAtualizarUsuario: (id: string, valores: UsuarioEditavel) => Promise<void>;
   onRemoverUsuario: (id: string) => Promise<void>;
   onCriarUsuario: (valores: NovoUsuarioInput) => Promise<void>;
 }
 
-const REGRAS: RegraUsuario[] = ["ADMIN", "LIDER", "MUSICOS"];
+const REGRAS: RegraUsuario[] = ["ADMIN", "ADMIN_PAINEL", "LIDER", "MUSICOS"];
+
+const LABEL_REGRA: Record<RegraUsuario, string> = {
+  ADMIN: "Super Admin",
+  ADMIN_PAINEL: "Admin de Painel",
+  LIDER: "Líder",
+  MUSICOS: "Membro",
+};
 
 const VARIANTE_BADGE_REGRA: Record<RegraUsuario, "default" | "secondary" | "outline"> = {
   ADMIN: "default",
+  ADMIN_PAINEL: "default",
   LIDER: "secondary",
   MUSICOS: "outline",
 };
@@ -52,19 +62,21 @@ const VARIANTE_BADGE_REGRA: Record<RegraUsuario, "default" | "secondary" | "outl
 function SeletorRegra({
   value,
   onChange,
+  regras = REGRAS,
 }: {
   value: RegraUsuario;
   onChange: (regra: RegraUsuario) => void;
+  regras?: RegraUsuario[];
 }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value as RegraUsuario)}
-      className="h-8 w-32 rounded-lg border border-violet-200 bg-white/70 px-2 text-sm shadow-sm transition-all focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30"
+      className="h-8 w-36 rounded-lg border border-violet-200 bg-white/70 px-2 text-sm shadow-sm transition-all focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30"
     >
-      {REGRAS.map((regra) => (
+      {regras.map((regra) => (
         <option key={regra} value={regra}>
-          {regra}
+          {LABEL_REGRA[regra]}
         </option>
       ))}
     </select>
@@ -107,6 +119,7 @@ export function UsuariosTable({
   data,
   departamentos,
   usuarioAtualId,
+  regrasPermitidas = REGRAS,
   onAtualizarUsuario,
   onRemoverUsuario,
   onCriarUsuario,
@@ -270,10 +283,11 @@ export function UsuariosTable({
                       <SeletorRegra
                         value={draft.regra}
                         onChange={(regra) => setDraft((d) => ({ ...d, regra }))}
+                        regras={regrasPermitidas}
                       />
                     ) : (
                       <Badge variant={VARIANTE_BADGE_REGRA[usuario.regra]}>
-                        {usuario.regra}
+                        {LABEL_REGRA[usuario.regra]}
                       </Badge>
                     )}
                   </TableCell>
@@ -385,6 +399,7 @@ export function UsuariosTable({
                   <SeletorRegra
                     value={novoUsuarioDraft.regra}
                     onChange={(regra) => setNovoUsuarioDraft((d) => ({ ...d, regra }))}
+                    regras={regrasPermitidas}
                   />
                 </TableCell>
                 <TableCell>
@@ -452,6 +467,7 @@ export function UsuariosTable({
                   <SeletorRegra
                     value={draft.regra}
                     onChange={(regra) => setDraft((d) => ({ ...d, regra }))}
+                    regras={regrasPermitidas}
                   />
                   <SeletorDepartamento
                     value={draft.departamentoId}
@@ -482,7 +498,7 @@ export function UsuariosTable({
                         <span className="ml-2 text-xs text-muted-foreground">(você)</span>
                       )}
                     </span>
-                    <Badge variant={VARIANTE_BADGE_REGRA[usuario.regra]}>{usuario.regra}</Badge>
+                    <Badge variant={VARIANTE_BADGE_REGRA[usuario.regra]}>{LABEL_REGRA[usuario.regra]}</Badge>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{usuario.email}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
@@ -536,6 +552,7 @@ export function UsuariosTable({
               <SeletorRegra
                 value={novoUsuarioDraft.regra}
                 onChange={(regra) => setNovoUsuarioDraft((d) => ({ ...d, regra }))}
+                regras={regrasPermitidas}
               />
               <SeletorDepartamento
                 value={novoUsuarioDraft.departamentoId}

@@ -19,6 +19,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
+  // Camada extra de proteção: só Super Admin e Administrador de Painel podem
+  // acessar a gestão de usuários. O escopo por departamento (Admin de Painel
+  // só vê o próprio time) é aplicado dentro da página, que tem acesso ao banco.
+  const isRotaUsuarios = pathname.startsWith("/dashboard/usuarios");
+  if (isRotaUsuarios && sessao && sessao.regra !== "ADMIN" && sessao.regra !== "ADMIN_PAINEL") {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
   return NextResponse.next();
 }
 

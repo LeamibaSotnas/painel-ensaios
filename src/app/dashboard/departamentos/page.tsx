@@ -10,6 +10,7 @@ import {
   type NovoDepartamentoInput,
 } from "@/components/DepartamentosManager";
 import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
+import { podeGerenciarDepartamentos } from "@/core/auth/permissoes";
 import { gerarSlug } from "@/core/utils/slug";
 import {
   atualizarDepartamento,
@@ -37,9 +38,11 @@ async function gerarSlugUnico(nome: string): Promise<string> {
 
 export default async function DepartamentosIndexPage() {
   const usuarioAtual = await getUsuarioAtual();
-  const ehAdmin = usuarioAtual?.regra === "ADMIN";
+  // Apenas o Super Administrador gerencia (cria/edita/exclui) departamentos —
+  // Administrador de Painel, Líder e Membro só visualizam o próprio departamento.
+  const podeGerenciar = podeGerenciarDepartamentos(usuarioAtual);
 
-  if (!ehAdmin && usuarioAtual?.departamento_id) {
+  if (!podeGerenciar && usuarioAtual?.departamento_id) {
     const meuDepartamento = await getDepartamentoPorId(usuarioAtual.departamento_id);
     if (meuDepartamento) {
       redirect(`/dashboard/departamentos/${meuDepartamento.slug}`);
@@ -113,7 +116,7 @@ export default async function DepartamentosIndexPage() {
         ))}
       </div>
 
-      {ehAdmin && (
+      {podeGerenciar && (
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold tracking-tight">
             Gerenciar departamentos

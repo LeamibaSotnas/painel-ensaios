@@ -6,7 +6,14 @@
  * são criados e aplicados automaticamente em `src/core/db/client.ts`.
  */
 
-export type RegraUsuario = "ADMIN" | "LIDER" | "MUSICOS";
+/**
+ * ADMIN — Super Administrador: controle total do sistema, todos os departamentos.
+ * ADMIN_PAINEL — Administrador de Painel: controla apenas o próprio departamento
+ * (gerencia usuários e repertório locais, mas não vê nem afeta outros departamentos).
+ * LIDER — gerencia repertório/ensaios do próprio departamento.
+ * MUSICOS — apenas visualiza/atualiza informações autorizadas (Membro).
+ */
+export type RegraUsuario = "ADMIN" | "ADMIN_PAINEL" | "LIDER" | "MUSICOS";
 
 /** Linha completa de `usuarios`, incluindo o hash da senha. Uso interno. */
 export interface UsuarioRegistro {

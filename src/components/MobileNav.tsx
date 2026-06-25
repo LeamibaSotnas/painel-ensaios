@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, LayoutDashboard, Music2, Users } from "lucide-react";
 
+import { podeGerenciarUsuarios } from "@/core/auth/permissoes";
 import { cn } from "@/lib/utils";
 import type { Usuario } from "@/types/database.types";
 
@@ -31,9 +32,9 @@ const ITEM_USUARIOS: ItemNavegacao = {
  */
 export function MobileNav({ usuario }: { usuario: Usuario }) {
   const pathname = usePathname();
-  const podeGerenciarUsuarios = usuario.regra === "ADMIN";
+  const exibirItemUsuarios = podeGerenciarUsuarios(usuario);
 
-  const itens = podeGerenciarUsuarios ? [...ITENS_BASE, ITEM_USUARIOS] : ITENS_BASE;
+  const itens = exibirItemUsuarios ? [...ITENS_BASE, ITEM_USUARIOS] : ITENS_BASE;
 
   return (
     <nav

@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 
 import { LouvoresTable } from "@/components/LouvoresTable";
 import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
+import { podeEditarDepartamento, podeVerDepartamento } from "@/core/auth/permissoes";
 import { gerarProximoCodigo } from "@/core/utils/code-generator";
 import { buscarMetadadosYoutube, buscarVideosYoutube } from "@/core/utils/youtube";
 import {
@@ -41,14 +42,18 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
   const caminhoAtual = `/dashboard/departamentos/${deptSlug}`;
 
   const usuarioAtual = await getUsuarioAtual();
-  const ehAdmin = usuarioAtual?.regra === "ADMIN";
 
-  if (!ehAdmin && usuarioAtual?.departamento_id !== departamentoId) {
+  // Super Admin vê todos os departamentos; demais (Admin de Painel, Líder,
+  // Membro) só acessam o próprio — bloqueia visualização cruzada entre departamentos.
+  if (!podeVerDepartamento(usuarioAtual, departamentoId)) {
     redirect("/dashboard/departamentos");
   }
 
   const louvores = await listarLouvoresPorDepartamento(departamentoId);
-  const podeEditar = ehAdmin || usuarioAtual?.regra === "LIDER";
+  // Super Admin, Admin de Painel e Líder podem editar o repertório do próprio
+  // departamento; Admin de Painel/Líder nunca editam o de outro departamento
+  // (já garantido pelo redirect acima).
+  const podeEditar = podeEditarDepartamento(usuarioAtual, departamentoId);
 
   async function handleAtualizarLinha(id: string, valores: LouvorEditavel) {
     "use server";
