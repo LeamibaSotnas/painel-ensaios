@@ -169,8 +169,8 @@ export function UsuariosTable({
         departamentoId: draft.regra === "ADMIN" ? null : draft.departamentoId,
       });
       setEditingId(null);
-    } catch {
-      setErro("Não foi possível salvar esse usuário.");
+    } catch (erro) {
+      setErro(erro instanceof Error ? erro.message : "Não foi possível salvar esse usuário.");
     } finally {
       setSavingId(null);
     }
@@ -181,8 +181,8 @@ export function UsuariosTable({
     setErro(null);
     try {
       await onRemoverUsuario(id);
-    } catch {
-      setErro("Não foi possível remover esse usuário.");
+    } catch (erro) {
+      setErro(erro instanceof Error ? erro.message : "Não foi possível remover esse usuário.");
     } finally {
       setSavingId(null);
     }
@@ -224,8 +224,12 @@ export function UsuariosTable({
         regra: "MUSICOS",
         departamentoId: departamentos[0]?.id ?? null,
       });
-    } catch {
-      setErro("Não foi possível criar esse usuário. Verifique se o e-mail já está em uso.");
+    } catch (erro) {
+      setErro(
+        erro instanceof Error
+          ? erro.message
+          : "Não foi possível criar esse usuário. Verifique se o e-mail já está em uso."
+      );
     } finally {
       setIsSavingNovoUsuario(false);
     }
