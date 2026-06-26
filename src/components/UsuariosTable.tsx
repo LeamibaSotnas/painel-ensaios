@@ -21,6 +21,8 @@ export interface UsuarioEditavel {
   nome: string;
   regra: RegraUsuario;
   departamentoId: string | null;
+  /** Preenchido apenas quando o admin quer redefinir a senha; vazio = manter a atual. */
+  novaSenha?: string;
 }
 
 export interface NovoUsuarioInput {
@@ -129,6 +131,7 @@ export function UsuariosTable({
     nome: "",
     regra: "MUSICOS",
     departamentoId: departamentos[0]?.id ?? null,
+    novaSenha: "",
   });
   const [savingId, setSavingId] = React.useState<string | null>(null);
   const [isCriando, setIsCriando] = React.useState(false);
@@ -149,6 +152,7 @@ export function UsuariosTable({
       nome: usuario.nome,
       regra: usuario.regra,
       departamentoId: usuario.departamento_id,
+      novaSenha: "",
     });
   }
 
@@ -159,6 +163,10 @@ export function UsuariosTable({
   async function salvarEdicao(id: string) {
     if (draft.regra !== "ADMIN" && !draft.departamentoId) {
       setErro("Selecione um departamento para esse usuário.");
+      return;
+    }
+    if (draft.novaSenha && draft.novaSenha.trim().length > 0 && draft.novaSenha.trim().length < 6) {
+      setErro("A nova senha deve ter ao menos 6 caracteres.");
       return;
     }
     setSavingId(id);
@@ -173,6 +181,7 @@ export function UsuariosTable({
         return;
       }
       setEditingId(null);
+      setDraft((d) => ({ ...d, novaSenha: "" }));
     } catch (erro) {
       setErro(erro instanceof Error ? erro.message : "Não foi possível salvar esse usuário.");
     } finally {
@@ -292,7 +301,20 @@ export function UsuariosTable({
                     )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{usuario.email}</TableCell>
-                  <TableCell className="text-muted-foreground">••••••••</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {emEdicao ? (
+                      <Input
+                        className="h-8 w-32"
+                        type="password"
+                        placeholder="Nova senha"
+                        title="Deixe em branco para manter a senha atual"
+                        value={draft.novaSenha ?? ""}
+                        onChange={(e) => setDraft((d) => ({ ...d, novaSenha: e.target.value }))}
+                      />
+                    ) : (
+                      "••••••••"
+                    )}
+                  </TableCell>
                   <TableCell>
                     {emEdicao ? (
                       <SeletorRegra
@@ -493,6 +515,14 @@ export function UsuariosTable({
                     onChange={(id) => setDraft((d) => ({ ...d, departamentoId: id }))}
                     departamentos={departamentos}
                     disabled={draft.regra === "ADMIN"}
+                  />
+                  <Input
+                    className="h-9"
+                    type="password"
+                    placeholder="Nova senha (opcional)"
+                    title="Deixe em branco para manter a senha atual"
+                    value={draft.novaSenha ?? ""}
+                    onChange={(e) => setDraft((d) => ({ ...d, novaSenha: e.target.value }))}
                   />
                   <div className="flex justify-end gap-2 pt-1">
                     <Button variant="outline" size="sm" disabled={salvando} onClick={cancelarEdicao}>

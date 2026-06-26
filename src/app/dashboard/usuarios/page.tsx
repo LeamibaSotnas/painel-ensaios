@@ -56,6 +56,10 @@ export default async function UsuariosPage() {
     if (valores.regra !== "ADMIN" && !valores.departamentoId) {
       return { erro: "Selecione um departamento para esse usuário." };
     }
+    const novaSenha = valores.novaSenha?.trim();
+    if (novaSenha && novaSenha.length < 6) {
+      return { erro: "A nova senha deve ter ao menos 6 caracteres." };
+    }
     if (restritoAoProprioDepartamento) {
       const alvo = todosUsuarios.find((u) => u.id === id);
       if (!alvo || alvo.departamento_id !== meuDepartamentoId) {
@@ -69,7 +73,12 @@ export default async function UsuariosPage() {
       }
     }
     try {
-      await atualizarUsuario(id, valores);
+      await atualizarUsuario(id, {
+        nome: valores.nome,
+        regra: valores.regra,
+        departamentoId: valores.departamentoId,
+        senhaHash: novaSenha ? hashSenha(novaSenha) : undefined,
+      });
     } catch (erro) {
       return { erro: erro instanceof Error ? erro.message : "Falha ao salvar no banco de dados." };
     }

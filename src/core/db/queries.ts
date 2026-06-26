@@ -65,13 +65,27 @@ export async function criarUsuario(valores: {
 
 export async function atualizarUsuario(
   id: string,
-  valores: { nome: string; regra: RegraUsuario; departamentoId: string | null }
+  valores: {
+    nome: string;
+    regra: RegraUsuario;
+    departamentoId: string | null;
+    /** Quando informado, redefine a senha do usuário (hash já calculado). */
+    senhaHash?: string;
+  }
 ): Promise<void> {
   const db = await getDb();
-  await db`
-    UPDATE usuarios SET nome = ${valores.nome}, regra = ${valores.regra}, departamento_id = ${valores.departamentoId}
-    WHERE id = ${id}
-  `;
+  if (valores.senhaHash) {
+    await db`
+      UPDATE usuarios
+      SET nome = ${valores.nome}, regra = ${valores.regra}, departamento_id = ${valores.departamentoId}, senha_hash = ${valores.senhaHash}
+      WHERE id = ${id}
+    `;
+  } else {
+    await db`
+      UPDATE usuarios SET nome = ${valores.nome}, regra = ${valores.regra}, departamento_id = ${valores.departamentoId}
+      WHERE id = ${id}
+    `;
+  }
 }
 
 export async function removerUsuario(id: string): Promise<void> {
