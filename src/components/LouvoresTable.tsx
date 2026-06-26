@@ -444,12 +444,15 @@ export function LouvoresTable({
     //    (pequeno, deslocado), em vez de centralizar na tela inteira.
     // Um Portal escapa de ambos os problemas de uma vez.
     return createPortal(
+      // No celular, vira uma "bandeja" colada na base da tela (mais fácil de
+      // alcançar com o polegar); a partir de sm: passa a ser um modal
+      // centralizado e mais largo, como no notebook/desktop.
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+        className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center sm:p-4"
         onClick={() => setPainelBusca(null)}
       >
         <div
-          className="w-full max-w-md rounded-2xl border border-violet-100 bg-white p-3 shadow-2xl"
+          className="max-h-[85vh] w-full overflow-y-auto rounded-t-2xl border border-violet-100 bg-white p-3 shadow-2xl sm:max-h-[80vh] sm:max-w-lg sm:rounded-2xl md:max-w-xl md:p-4"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between px-1 pb-2">
@@ -482,7 +485,7 @@ export function LouvoresTable({
         ) : painelBusca.resultados.length === 0 ? (
           <p className="px-1 py-3 text-sm text-muted-foreground">Nenhum resultado encontrado.</p>
         ) : (
-          <div className="flex max-h-[26rem] flex-col gap-1 overflow-y-auto">
+          <div className="flex max-h-[30rem] flex-col gap-1 overflow-y-auto">
             {painelBusca.resultados.map((resultado) => (
               <button
                 key={resultado.id}
@@ -494,11 +497,11 @@ export function LouvoresTable({
                 <img
                   src={resultado.thumbnail}
                   alt=""
-                  className="h-14 w-24 shrink-0 rounded-lg object-cover"
+                  className="h-16 w-28 shrink-0 rounded-lg object-cover md:h-20 md:w-36"
                 />
                 <span className="flex flex-col overflow-hidden">
-                  <span className="truncate text-sm font-medium">{resultado.titulo}</span>
-                  <span className="truncate text-xs text-muted-foreground">
+                  <span className="truncate text-sm font-medium md:text-base">{resultado.titulo}</span>
+                  <span className="truncate text-xs text-muted-foreground md:text-sm">
                     {resultado.canal}
                   </span>
                 </span>
