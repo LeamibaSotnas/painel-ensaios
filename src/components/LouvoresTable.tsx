@@ -199,7 +199,9 @@ export function LouvoresTable({
   const [buscandoVideos, setBuscandoVideos] = React.useState(false);
   const [painelBusca, setPainelBusca] = React.useState<{
     contexto: "editing" | "novo";
-    resultados: ResultadoBuscaYoutube[];
+    /** `null` = busca inteligente indisponível; mostra link manual em vez da lista. */
+    resultados: ResultadoBuscaYoutube[] | null;
+    query: string;
   } | null>(null);
 
   // --- filtros ---------------------------------------------------------
@@ -400,16 +402,13 @@ export function LouvoresTable({
     setBuscandoVideos(true);
     try {
       const resultados = await onBuscarVideosYoutube(query);
-      if (resultados === null) {
-        // Sem busca inteligente configurada: abre a busca do YouTube numa nova aba.
-        window.open(
-          `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
-          "_blank",
-          "noopener,noreferrer"
-        );
-        return;
-      }
-      setPainelBusca({ contexto, resultados });
+      // Nota: NÃO chamamos window.open() aqui. Depois de um `await`, o
+      // navegador já perdeu a "ativação transitória" do clique original e
+      // bloqueia popups silenciosamente (sem erro no console) — foi o que
+      // causava o botão "não fazer nada" depois de configurar a busca
+      // inteligente (a chamada à API passou a ter uma espera real). Em vez
+      // disso, mostramos um link manual que o próprio usuário clica.
+      setPainelBusca({ contexto, resultados, query });
     } catch {
       setErro("Não foi possível buscar no YouTube agora.");
     } finally {
@@ -449,7 +448,22 @@ export function LouvoresTable({
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
-        {painelBusca.resultados.length === 0 ? (
+        {painelBusca.resultados === null ? (
+          <div className="flex flex-col gap-1.5 px-1.5 py-2">
+            <p className="text-xs text-muted-foreground">
+              Busca inteligente indisponível agora. Toque para abrir a busca no YouTube:
+            </p>
+            <a
+              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(painelBusca.query)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setPainelBusca(null)}
+              className="inline-flex items-center justify-center rounded-lg bg-violet-50 px-2 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-100"
+            >
+              Abrir no YouTube
+            </a>
+          </div>
+        ) : painelBusca.resultados.length === 0 ? (
           <p className="px-1.5 py-2 text-xs text-muted-foreground">Nenhum resultado encontrado.</p>
         ) : (
           <div className="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
