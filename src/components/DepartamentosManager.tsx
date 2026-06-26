@@ -190,6 +190,7 @@ export function DepartamentosManager({
                           className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
                           disabled={salvando}
                           onClick={() => salvarEdicao(departamento.id)}
+                          title="Salvar"
                         >
                           {salvando ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -203,6 +204,7 @@ export function DepartamentosManager({
                           className="h-8 w-8"
                           disabled={salvando}
                           onClick={cancelarEdicao}
+                          title="Cancelar"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -218,6 +220,7 @@ export function DepartamentosManager({
                           className="h-8 w-8 text-red-600 hover:text-red-700"
                           disabled={salvando}
                           onClick={() => remover(departamento.id)}
+                          title="Confirmar remoção"
                         >
                           {salvando ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -231,6 +234,7 @@ export function DepartamentosManager({
                           className="h-8 w-8"
                           disabled={salvando}
                           onClick={() => setConfirmandoRemocaoId(null)}
+                          title="Cancelar"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -293,6 +297,7 @@ export function DepartamentosManager({
                       className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
                       disabled={isSavingNovo}
                       onClick={salvarNovoDepartamento}
+                      title="Salvar"
                     >
                       {isSavingNovo ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -309,6 +314,7 @@ export function DepartamentosManager({
                         setIsCriando(false);
                         setNovoDraft(DRAFT_VAZIO);
                       }}
+                      title="Cancelar"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -382,6 +388,7 @@ export function DepartamentosManager({
                           className="h-8 w-8 text-red-600 hover:text-red-700"
                           disabled={salvando}
                           onClick={() => remover(departamento.id)}
+                          title="Confirmar remoção"
                         >
                           {salvando ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -395,6 +402,7 @@ export function DepartamentosManager({
                           className="h-8 w-8"
                           disabled={salvando}
                           onClick={() => setConfirmandoRemocaoId(null)}
+                          title="Cancelar"
                         >
                           <X className="h-4 w-4" />
                         </Button>

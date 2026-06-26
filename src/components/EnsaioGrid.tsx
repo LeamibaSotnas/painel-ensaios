@@ -451,6 +451,7 @@ export function EnsaioGrid({
                             className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
                             disabled={salvando}
                             onClick={() => salvarEdicao(ensaio.id)}
+                            title="Salvar"
                           >
                             {salvando ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -464,6 +465,7 @@ export function EnsaioGrid({
                             className="h-8 w-8"
                             disabled={salvando}
                             onClick={cancelarEdicao}
+                            title="Cancelar"
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -547,6 +549,7 @@ export function EnsaioGrid({
                         className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
                         disabled={isSavingNovo}
                         onClick={salvarNovo}
+                        title="Salvar"
                       >
                         {isSavingNovo ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -560,6 +563,7 @@ export function EnsaioGrid({
                         className="h-8 w-8"
                         disabled={isSavingNovo}
                         onClick={() => setIsAdding(false)}
+                        title="Cancelar"
                       >
                         <X className="h-4 w-4" />
                       </Button>

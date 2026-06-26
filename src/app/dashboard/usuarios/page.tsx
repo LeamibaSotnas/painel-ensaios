@@ -41,25 +41,12 @@ export default async function UsuariosPage() {
     : todosDepartamentos;
   const regrasPermitidas = regrasAtribuiveis(usuarioAtual);
 
-  /**
-   * Garante que um Admin de Painel só opere sobre usuários/papéis do próprio
-   * departamento. Retorna a mensagem de erro (em vez de lançar) porque erros
-   * lançados dentro de Server Actions chegam mascarados ao cliente em
-   * produção ("An error occurred in the Server Components render...").
-   */
-  function validarEscopoAdminPainel(valores: {
-    regra: string;
-    departamentoId: string | null;
-  }): string | null {
-    if (!restritoAoProprioDepartamento) return null;
-    if (valores.regra === "ADMIN" || valores.regra === "ADMIN_PAINEL") {
-      return "Você não tem permissão para atribuir esse papel.";
-    }
-    if (valores.departamentoId !== meuDepartamentoId) {
-      return "Você só pode gerenciar usuários do seu próprio departamento.";
-    }
-    return null;
-  }
+  // Nota: a validação de escopo do Admin de Painel é feita inline dentro de
+  // cada Server Action (em vez de chamar uma função auxiliar declarada aqui
+  // fora) porque funções comuns capturadas do escopo do componente não podem
+  // ser fechadas (closure) por uma action "use server" — isso gera o erro
+  // "Functions cannot be passed directly to Client Components..." em toda
+  // renderização da página, mesmo sem o usuário acionar nada.
 
   async function handleAtualizarUsuario(
     id: string,
@@ -74,8 +61,12 @@ export default async function UsuariosPage() {
       if (!alvo || alvo.departamento_id !== meuDepartamentoId) {
         return { erro: "Você só pode gerenciar usuários do seu próprio departamento." };
       }
-      const erroEscopo = validarEscopoAdminPainel(valores);
-      if (erroEscopo) return { erro: erroEscopo };
+      if (valores.regra === "ADMIN" || valores.regra === "ADMIN_PAINEL") {
+        return { erro: "Você não tem permissão para atribuir esse papel." };
+      }
+      if (valores.departamentoId !== meuDepartamentoId) {
+        return { erro: "Você só pode gerenciar usuários do seu próprio departamento." };
+      }
     }
     try {
       await atualizarUsuario(id, valores);
@@ -121,8 +112,12 @@ export default async function UsuariosPage() {
       return { erro: "Selecione um departamento para esse usuário." };
     }
     if (restritoAoProprioDepartamento) {
-      const erroEscopo = validarEscopoAdminPainel(valores);
-      if (erroEscopo) return { erro: erroEscopo };
+      if (valores.regra === "ADMIN" || valores.regra === "ADMIN_PAINEL") {
+        return { erro: "Você não tem permissão para atribuir esse papel." };
+      }
+      if (valores.departamentoId !== meuDepartamentoId) {
+        return { erro: "Você só pode gerenciar usuários do seu próprio departamento." };
+      }
     }
     try {
       await criarUsuario({

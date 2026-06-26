@@ -331,6 +331,7 @@ export function UsuariosTable({
                           className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
                           disabled={salvando}
                           onClick={() => salvarEdicao(usuario.id)}
+                          title="Salvar"
                         >
                           {salvando ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -344,6 +345,7 @@ export function UsuariosTable({
                           className="h-8 w-8"
                           disabled={salvando}
                           onClick={cancelarEdicao}
+                          title="Cancelar"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -435,6 +437,7 @@ export function UsuariosTable({
                       className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
                       disabled={isSavingNovoUsuario}
                       onClick={salvarNovoUsuario}
+                      title="Salvar"
                     >
                       {isSavingNovoUsuario ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -448,6 +451,7 @@ export function UsuariosTable({
                       className="h-8 w-8"
                       disabled={isSavingNovoUsuario}
                       onClick={() => setIsCriando(false)}
+                      title="Cancelar"
                     >
                       <X className="h-4 w-4" />
                     </Button>
