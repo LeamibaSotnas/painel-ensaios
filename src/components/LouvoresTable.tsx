@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import {
   type ColumnDef,
   flexRender,
@@ -434,23 +435,38 @@ export function LouvoresTable({
 
   function PainelBuscaYoutube({ contexto }: { contexto: "editing" | "novo" }) {
     if (!painelBusca || painelBusca.contexto !== contexto) return null;
-    return (
-      <div className="absolute left-0 top-full z-20 mt-1 w-72 max-w-[90vw] rounded-xl border border-violet-100 bg-white p-1.5 shadow-lg shadow-violet-900/15">
-        <div className="flex items-center justify-between px-1.5 pb-1">
-          <span className="text-[11px] font-medium text-muted-foreground">
-            Resultados do YouTube
-          </span>
-          <button
-            type="button"
-            onClick={() => setPainelBusca(null)}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-        {painelBusca.resultados === null ? (
-          <div className="flex flex-col gap-1.5 px-1.5 py-2">
-            <p className="text-xs text-muted-foreground">
+    // Renderizado num Portal direto em document.body, como modal fixo:
+    // 1) a tabela tem `overflow-x-auto`, que recorta (clipa) qualquer
+    //    elemento posicionado de forma absoluta que ultrapasse a borda;
+    // 2) o card do dashboard usa `backdrop-blur-xl`, e `backdrop-filter`
+    //    cria um novo "containing block" para elementos `fixed` — ou seja,
+    //    mesmo um modal `fixed inset-0` ficava preso dentro desse cartão
+    //    (pequeno, deslocado), em vez de centralizar na tela inteira.
+    // Um Portal escapa de ambos os problemas de uma vez.
+    return createPortal(
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+        onClick={() => setPainelBusca(null)}
+      >
+        <div
+          className="w-full max-w-md rounded-2xl border border-violet-100 bg-white p-3 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between px-1 pb-2">
+            <span className="text-sm font-semibold text-foreground">
+              Resultados do YouTube
+            </span>
+            <button
+              type="button"
+              onClick={() => setPainelBusca(null)}
+              className="rounded-md p-1 text-muted-foreground hover:bg-violet-50 hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          {painelBusca.resultados === null ? (
+          <div className="flex flex-col gap-2 px-1 py-3">
+            <p className="text-sm text-muted-foreground">
               Busca inteligente indisponível agora. Toque para abrir a busca no YouTube:
             </p>
             <a
@@ -458,39 +474,41 @@ export function LouvoresTable({
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setPainelBusca(null)}
-              className="inline-flex items-center justify-center rounded-lg bg-violet-50 px-2 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-100"
+              className="inline-flex items-center justify-center rounded-lg bg-violet-50 px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-100"
             >
               Abrir no YouTube
             </a>
           </div>
         ) : painelBusca.resultados.length === 0 ? (
-          <p className="px-1.5 py-2 text-xs text-muted-foreground">Nenhum resultado encontrado.</p>
+          <p className="px-1 py-3 text-sm text-muted-foreground">Nenhum resultado encontrado.</p>
         ) : (
-          <div className="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
+          <div className="flex max-h-[26rem] flex-col gap-1 overflow-y-auto">
             {painelBusca.resultados.map((resultado) => (
               <button
                 key={resultado.id}
                 type="button"
                 onClick={() => selecionarVideoBusca(contexto, resultado)}
-                className="flex items-center gap-2 rounded-lg p-1.5 text-left transition-colors hover:bg-violet-50"
+                className="flex items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-violet-50"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={resultado.thumbnail}
                   alt=""
-                  className="h-9 w-16 shrink-0 rounded-md object-cover"
+                  className="h-14 w-24 shrink-0 rounded-lg object-cover"
                 />
                 <span className="flex flex-col overflow-hidden">
-                  <span className="truncate text-xs font-medium">{resultado.titulo}</span>
-                  <span className="truncate text-[10px] text-muted-foreground">
+                  <span className="truncate text-sm font-medium">{resultado.titulo}</span>
+                  <span className="truncate text-xs text-muted-foreground">
                     {resultado.canal}
                   </span>
                 </span>
               </button>
             ))}
           </div>
-        )}
-      </div>
+          )}
+        </div>
+      </div>,
+      document.body
     );
   }
 
