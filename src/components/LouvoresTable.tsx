@@ -1369,15 +1369,7 @@ export function LouvoresTable({
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-600 hover:text-red-700"
-                          disabled={salvando}
-                          onClick={() => excluirLinha(linha.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <SafeDeleteButton itemName={linha.nome_louvor} onConfirmDelete={async () => excluirLinha(linha.id)} variant="md" />
                       </div>
                     )}
                   </div>
@@ -1523,6 +1515,7 @@ export function LouvoresTable({
 }
 
 export default LouvoresTable;
+
 
 
 
