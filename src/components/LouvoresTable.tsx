@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { SafeDeleteButton } from "@/components/SafeDeleteButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -1522,6 +1523,7 @@ export function LouvoresTable({
 }
 
 export default LouvoresTable;
+
 
 
 
