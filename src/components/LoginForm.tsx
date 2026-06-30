@@ -1,17 +1,17 @@
-'use client';
+﻿'use client';
 
-import { entrar } from "../../app/(auth)/login/login-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/PasswordInput";
 
 interface LoginFormProps {
   erro?: string;
+  onSubmit: (formData: FormData) => Promise<void>;
 }
 
-export function LoginForm({ erro }: LoginFormProps) {
+export function LoginForm({ erro, onSubmit }: LoginFormProps) {
   return (
-    <form action={entrar} className="mt-6 flex flex-col gap-4">
+    <form action={onSubmit} className="mt-6 flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className="text-sm font-medium">
           E-mail
