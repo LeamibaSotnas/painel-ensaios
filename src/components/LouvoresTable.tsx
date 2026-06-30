@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { createPortal } from "react-dom";
@@ -54,13 +54,13 @@ export interface LouvoresTableProps {
   data: LouvorPlanilha[];
   /** id do departamento ao qual esta planilha pertence. */
   departamentoId: string;
-  /** Prefixo do departamento (ex.: "MOC"), usado só para exibição. */
+  /** Prefixo do departamento (ex.: "MOC"), usado sÃ³ para exibiÃ§Ã£o. */
   codigoPrefixo: string;
   /** Quando falso, a planilha fica somente leitura (ex.: regra MUSICOS). */
   editavel?: boolean;
-  /** Persiste a edição de campos de uma linha existente. */
+  /** Persiste a ediÃ§Ã£o de campos de uma linha existente. */
   onAtualizarLinha: (id: string, valores: LouvorEditavel) => Promise<void>;
-  /** Cria uma nova linha. O código sequencial é gerado pelo chamador. */
+  /** Cria uma nova linha. O cÃ³digo sequencial Ã© gerado pelo chamador. */
   onAdicionarLinha: (valores: NovoLouvorInput) => Promise<void>;
   /** Remove uma linha da planilha. */
   onRemoverLinha: (id: string) => Promise<void>;
@@ -68,15 +68,15 @@ export interface LouvoresTableProps {
   onReordenarLinha: (id: string, direcao: "up" | "down") => Promise<void>;
   /** Marca/desmarca um louvor como favorito. */
   onAlternarFavorito: (id: string, favorito: boolean) => Promise<void>;
-  /** Registra a data de hoje como última execução do louvor. */
+  /** Registra a data de hoje como Ãºltima execuÃ§Ã£o do louvor. */
   onMarcarExecutado: (id: string) => Promise<void>;
-  /** Salva cifra/observações (painel expansível por linha). */
+  /** Salva cifra/observaÃ§Ãµes (painel expansÃ­vel por linha). */
   onAtualizarDetalhes: (id: string, valores: LouvorDetalhesEditavel) => Promise<void>;
-  /** Busca título + miniatura + canal de um link do YouTube (oEmbed, sem download). */
+  /** Busca tÃ­tulo + miniatura + canal de um link do YouTube (oEmbed, sem download). */
   onBuscarMetadadosYoutube: (
     url: string
   ) => Promise<{ titulo: string; thumbnail: string; canal: string } | null>;
-  /** Busca inteligente por título/cantor (YouTube Data API, quando configurada). */
+  /** Busca inteligente por tÃ­tulo/cantor (YouTube Data API, quando configurada). */
   onBuscarVideosYoutube: (query: string) => Promise<ResultadoBuscaYoutube[] | null>;
 }
 
@@ -101,7 +101,7 @@ function normalizarLinkYoutube(link: string | null): string | null {
 }
 
 function formatarDataCurta(data: string | null): string {
-  if (!data) return "—";
+  if (!data) return "â€”";
   return new Date(`${data}T00:00:00`).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
@@ -109,17 +109,17 @@ function formatarDataCurta(data: string | null): string {
   });
 }
 
-// Bloco Unicode "Combining Diacritical Marks" (U+0300–U+036F) — construído a
-// partir dos códigos de caractere (0x300 a 0x36f), para não depender de
+// Bloco Unicode "Combining Diacritical Marks" (U+0300â€“U+036F) â€” construÃ­do a
+// partir dos cÃ³digos de caractere (0x300 a 0x36f), para nÃ£o depender de
 // glifos especiais armazenados diretamente no arquivo-fonte.
 const MARCAS_DIACRITICAS = new RegExp(`[\\u0300-\\u036f]`, "g");
 
-/** Remove acentos e normaliza para minúsculas, para comparações tolerantes. */
+/** Remove acentos e normaliza para minÃºsculas, para comparaÃ§Ãµes tolerantes. */
 function normalizarTexto(texto: string): string {
   return texto.normalize("NFD").replace(MARCAS_DIACRITICAS, "").toLowerCase().trim();
 }
 
-/** Distância de Levenshtein simples — usada para tolerar pequenos erros de digitação. */
+/** DistÃ¢ncia de Levenshtein simples â€” usada para tolerar pequenos erros de digitaÃ§Ã£o. */
 function distanciaEdicao(a: string, b: string): number {
   if (a === b) return 0;
   const linhas = a.length;
@@ -133,9 +133,9 @@ function distanciaEdicao(a: string, b: string): number {
     for (let j = 1; j <= colunas; j++) {
       const custo = a[i - 1] === b[j - 1] ? 0 : 1;
       atual[j] = Math.min(
-        atual[j - 1] + 1, // inserção
-        anterior[j] + 1, // remoção
-        anterior[j - 1] + custo // substituição
+        atual[j - 1] + 1, // inserÃ§Ã£o
+        anterior[j] + 1, // remoÃ§Ã£o
+        anterior[j - 1] + custo // substituiÃ§Ã£o
       );
     }
     anterior = atual;
@@ -145,9 +145,9 @@ function distanciaEdicao(a: string, b: string): number {
 
 /**
  * Busca inteligente "sem custo": tolerante a acentos e a pequenos erros de
- * digitação, e capaz de encontrar o termo em qualquer parte do texto
- * (nome, cantor, trecho da cifra/observações, tom ou código). Não usa
- * nenhuma API de IA externa — tudo roda localmente, no navegador.
+ * digitaÃ§Ã£o, e capaz de encontrar o termo em qualquer parte do texto
+ * (nome, cantor, trecho da cifra/observaÃ§Ãµes, tom ou cÃ³digo). NÃ£o usa
+ * nenhuma API de IA externa â€” tudo roda localmente, no navegador.
  */
 function correspondeABusca(termoBusca: string, textoCompleto: string): boolean {
   const termo = normalizarTexto(termoBusca);
@@ -155,8 +155,8 @@ function correspondeABusca(termoBusca: string, textoCompleto: string): boolean {
   const alvo = normalizarTexto(textoCompleto);
   if (alvo.includes(termo)) return true;
 
-  // Tolerância a erro de digitação: compara cada palavra da busca com as
-  // palavras do texto, permitindo pequenas diferenças (1 erro a cada ~4 letras).
+  // TolerÃ¢ncia a erro de digitaÃ§Ã£o: compara cada palavra da busca com as
+  // palavras do texto, permitindo pequenas diferenÃ§as (1 erro a cada ~4 letras).
   const palavrasBusca = termo.split(/\s+/).filter(Boolean);
   const palavrasAlvo = alvo.split(/\s+/).filter(Boolean);
   return palavrasBusca.every((palavraBusca) => {
@@ -200,7 +200,7 @@ export function LouvoresTable({
   const [buscandoVideos, setBuscandoVideos] = React.useState(false);
   const [painelBusca, setPainelBusca] = React.useState<{
     contexto: "editing" | "novo";
-    /** `null` = busca inteligente indisponível; mostra link manual em vez da lista. */
+    /** `null` = busca inteligente indisponÃ­vel; mostra link manual em vez da lista. */
     resultados: ResultadoBuscaYoutube[] | null;
     query: string;
   } | null>(null);
@@ -210,7 +210,7 @@ export function LouvoresTable({
   const [filtroTom, setFiltroTom] = React.useState("");
   const [somenteFavoritos, setSomenteFavoritos] = React.useState(false);
 
-  // --- painel expansível (cifra/observações) ----------------------------
+  // --- painel expansÃ­vel (cifra/observaÃ§Ãµes) ----------------------------
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const [detalhesDraft, setDetalhesDraft] = React.useState<LouvorDetalhesEditavel>({
     cifra: "",
@@ -226,8 +226,8 @@ export function LouvoresTable({
     return Array.from(tons).sort();
   }, [data]);
 
-  // Sugestões de autocomplete ao cadastrar uma música nova — evita duplicidade
-  // e agiliza a digitação reaproveitando nomes/cantores já usados no painel.
+  // SugestÃµes de autocomplete ao cadastrar uma mÃºsica nova â€” evita duplicidade
+  // e agiliza a digitaÃ§Ã£o reaproveitando nomes/cantores jÃ¡ usados no painel.
   const sugestoesNomes = React.useMemo(() => {
     const nomes = new Set<string>();
     for (const linha of data) {
@@ -250,8 +250,8 @@ export function LouvoresTable({
       if (somenteFavoritos && !linha.favorito) return false;
       if (filtroTom && linha.tonalidade !== filtroTom) return false;
       if (termo) {
-        // Busca inteligente: nome, cantor, tom, código, trecho da cifra e
-        // observações — tolerante a acentos e a pequenos erros de digitação.
+        // Busca inteligente: nome, cantor, tom, cÃ³digo, trecho da cifra e
+        // observaÃ§Ãµes â€” tolerante a acentos e a pequenos erros de digitaÃ§Ã£o.
         const alvo = [
           linha.nome_louvor,
           linha.cantor_banda,
@@ -303,7 +303,7 @@ export function LouvoresTable({
       });
       setEditingRowId(null);
     } catch {
-      setErro("Não foi possível salvar essa linha. Tente novamente.");
+      setErro("NÃ£o foi possÃ­vel salvar essa linha. Tente novamente.");
     } finally {
       setSavingRowId(null);
     }
@@ -315,7 +315,7 @@ export function LouvoresTable({
     try {
       await onRemoverLinha(id);
     } catch {
-      setErro("Não foi possível remover essa linha. Tente novamente.");
+      setErro("NÃ£o foi possÃ­vel remover essa linha. Tente novamente.");
     } finally {
       setSavingRowId(null);
     }
@@ -327,7 +327,7 @@ export function LouvoresTable({
     try {
       await onReordenarLinha(id, direcao);
     } catch {
-      setErro("Não foi possível reordenar essa linha.");
+      setErro("NÃ£o foi possÃ­vel reordenar essa linha.");
     } finally {
       setSavingRowId(null);
     }
@@ -338,7 +338,7 @@ export function LouvoresTable({
     try {
       await onAlternarFavorito(linha.id, !linha.favorito);
     } catch {
-      setErro("Não foi possível atualizar o favorito.");
+      setErro("NÃ£o foi possÃ­vel atualizar o favorito.");
     }
   }
 
@@ -348,7 +348,7 @@ export function LouvoresTable({
     try {
       await onMarcarExecutado(id);
     } catch {
-      setErro("Não foi possível registrar a execução.");
+      setErro("NÃ£o foi possÃ­vel registrar a execuÃ§Ã£o.");
     } finally {
       setSavingRowId(null);
     }
@@ -369,7 +369,7 @@ export function LouvoresTable({
     try {
       await onAtualizarDetalhes(id, detalhesDraft);
     } catch {
-      setErro("Não foi possível salvar a cifra/observações.");
+      setErro("NÃ£o foi possÃ­vel salvar a cifra/observaÃ§Ãµes.");
     } finally {
       setSavingDetalhes(false);
     }
@@ -386,7 +386,7 @@ export function LouvoresTable({
       const metadados = await onBuscarMetadadosYoutube(linkNormalizado);
       if (metadados) aplicar(metadados);
     } catch {
-      // captura de metadados é apenas um complemento — falha silenciosa
+      // captura de metadados Ã© apenas um complemento â€” falha silenciosa
     } finally {
       setBuscandoMetadados(false);
     }
@@ -403,15 +403,15 @@ export function LouvoresTable({
     setBuscandoVideos(true);
     try {
       const resultados = await onBuscarVideosYoutube(query);
-      // Nota: NÃO chamamos window.open() aqui. Depois de um `await`, o
-      // navegador já perdeu a "ativação transitória" do clique original e
-      // bloqueia popups silenciosamente (sem erro no console) — foi o que
-      // causava o botão "não fazer nada" depois de configurar a busca
-      // inteligente (a chamada à API passou a ter uma espera real). Em vez
-      // disso, mostramos um link manual que o próprio usuário clica.
+      // Nota: NÃƒO chamamos window.open() aqui. Depois de um `await`, o
+      // navegador jÃ¡ perdeu a "ativaÃ§Ã£o transitÃ³ria" do clique original e
+      // bloqueia popups silenciosamente (sem erro no console) â€” foi o que
+      // causava o botÃ£o "nÃ£o fazer nada" depois de configurar a busca
+      // inteligente (a chamada Ã  API passou a ter uma espera real). Em vez
+      // disso, mostramos um link manual que o prÃ³prio usuÃ¡rio clica.
       setPainelBusca({ contexto, resultados, query });
     } catch {
-      setErro("Não foi possível buscar no YouTube agora.");
+      setErro("NÃ£o foi possÃ­vel buscar no YouTube agora.");
     } finally {
       setBuscandoVideos(false);
     }
@@ -439,13 +439,13 @@ export function LouvoresTable({
     // 1) a tabela tem `overflow-x-auto`, que recorta (clipa) qualquer
     //    elemento posicionado de forma absoluta que ultrapasse a borda;
     // 2) o card do dashboard usa `backdrop-blur-xl`, e `backdrop-filter`
-    //    cria um novo "containing block" para elementos `fixed` — ou seja,
-    //    mesmo um modal `fixed inset-0` ficava preso dentro desse cartão
+    //    cria um novo "containing block" para elementos `fixed` â€” ou seja,
+    //    mesmo um modal `fixed inset-0` ficava preso dentro desse cartÃ£o
     //    (pequeno, deslocado), em vez de centralizar na tela inteira.
     // Um Portal escapa de ambos os problemas de uma vez.
     return createPortal(
-      // No celular, vira uma "bandeja" colada na base da tela (mais fácil de
-      // alcançar com o polegar); a partir de sm: passa a ser um modal
+      // No celular, vira uma "bandeja" colada na base da tela (mais fÃ¡cil de
+      // alcanÃ§ar com o polegar); a partir de sm: passa a ser um modal
       // centralizado e mais largo, como no notebook/desktop.
       <div
         className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center sm:p-4"
@@ -470,7 +470,7 @@ export function LouvoresTable({
           {painelBusca.resultados === null ? (
           <div className="flex flex-col gap-2 px-1 py-3">
             <p className="text-sm text-muted-foreground">
-              Busca inteligente indisponível agora. Toque para abrir a busca no YouTube:
+              Busca inteligente indisponÃ­vel agora. Toque para abrir a busca no YouTube:
             </p>
             <a
               href={`https://www.youtube.com/results?search_query=${encodeURIComponent(painelBusca.query)}`}
@@ -557,7 +557,7 @@ export function LouvoresTable({
       setIsAddingRow(false);
       setNewRowDraft({ ...DRAFT_VAZIO, ordem_execucao: data.length + 2 });
     } catch {
-      setErro("Não foi possível adicionar a nova linha.");
+      setErro("NÃ£o foi possÃ­vel adicionar a nova linha.");
     } finally {
       setIsSavingNewRow(false);
     }
@@ -597,7 +597,7 @@ export function LouvoresTable({
         />
         <span className="flex max-w-32 flex-col">
           <span className="truncate text-xs font-medium group-hover:underline">
-            {linha.youtube_titulo || "Vídeo"}
+            {linha.youtube_titulo || "VÃ­deo"}
           </span>
           {linha.youtube_canal ? (
             <span className="truncate text-[10px] text-muted-foreground">{linha.youtube_canal}</span>
@@ -611,7 +611,7 @@ export function LouvoresTable({
     );
   }
 
-  /** Player do YouTube incorporado, exibido no painel expansível de cada linha. */
+  /** Player do YouTube incorporado, exibido no painel expansÃ­vel de cada linha. */
   function PlayerYoutube({ linha }: { linha: LouvorPlanilha }) {
     const videoId = linha.link_youtube ? extrairIdYoutube(linha.link_youtube) : null;
     if (!videoId) return null;
@@ -619,7 +619,7 @@ export function LouvoresTable({
       <div className="flex flex-col gap-1.5 sm:col-span-2">
         <div className="flex items-center justify-between">
           <span className="truncate text-xs font-medium">
-            {linha.youtube_titulo || "Vídeo"}
+            {linha.youtube_titulo || "VÃ­deo"}
           </span>
           {linha.youtube_canal && (
             <span className="shrink-0 truncate text-[11px] text-muted-foreground">
@@ -666,7 +666,7 @@ export function LouvoresTable({
       },
       {
         accessorKey: "codigo_sequencial",
-        header: "Código",
+        header: "CÃ³digo",
         cell: ({ row }) => (
           <Badge variant="secondary" className="font-mono">
             {row.original.codigo_sequencial}
@@ -715,7 +715,7 @@ export function LouvoresTable({
           const emEdicao = editingRowId === linha.id;
           if (!emEdicao) {
             return (
-              <span className="text-muted-foreground">{linha.cantor_banda || "—"}</span>
+              <span className="text-muted-foreground">{linha.cantor_banda || "â€”"}</span>
             );
           }
           return (
@@ -738,7 +738,7 @@ export function LouvoresTable({
             return linha.tonalidade ? (
               <Badge variant="outline">{linha.tonalidade}</Badge>
             ) : (
-              <span className="text-muted-foreground">—</span>
+              <span className="text-muted-foreground">â€”</span>
             );
           }
           return (
@@ -789,7 +789,7 @@ export function LouvoresTable({
       },
       {
         accessorKey: "ultima_execucao",
-        header: "Última execução",
+        header: "Ãšltima execuÃ§Ã£o",
         cell: ({ row }) => {
           const linha = row.original;
           const ocupado = savingRowId === linha.id;
@@ -898,15 +898,11 @@ export function LouvoresTable({
               >
                 <Pencil className="h-4 w-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-red-600 hover:text-red-700"
-                disabled={savingRowId === linha.id}
-                onClick={() => excluirLinha(linha.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+                            <SafeDeleteButton
+                itemName={linha.nome_louvor}
+                onConfirmDelete={async () => excluirLinha(linha.id)}
+                variant="md"
+              />
             </div>
           );
         },
@@ -936,7 +932,7 @@ export function LouvoresTable({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Listas de autocomplete (nativas do navegador) para o cadastro de músicas novas. */}
+      {/* Listas de autocomplete (nativas do navegador) para o cadastro de mÃºsicas novas. */}
       <datalist id="lista-nomes-louvor">
         {sugestoesNomes.map((nome) => (
           <option key={nome} value={nome} />
@@ -1047,11 +1043,11 @@ export function LouvoresTable({
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-xs font-medium text-muted-foreground">
-                              Observações
+                              ObservaÃ§Ãµes
                             </span>
                             <textarea
                               className="caderno-linhas min-h-24 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
-                              placeholder="Observações sobre o louvor"
+                              placeholder="ObservaÃ§Ãµes sobre o louvor"
                               value={detalhesDraft.observacoes}
                               disabled={!editavel}
                               onChange={(e) =>
@@ -1193,7 +1189,7 @@ export function LouvoresTable({
         </Table>
       </div>
 
-      {/* Versão mobile — lista de cards, dedicada para telas pequenas */}
+      {/* VersÃ£o mobile â€” lista de cards, dedicada para telas pequenas */}
       <div className="flex flex-col gap-2.5 md:hidden">
         {dadosFiltrados.length === 0 && !isAddingRow && (
           <p className="py-8 text-center text-sm text-muted-foreground">
@@ -1293,7 +1289,7 @@ export function LouvoresTable({
                       <span>
                         <span className="block font-medium leading-tight">{linha.nome_louvor}</span>
                         <span className="block text-xs text-muted-foreground">
-                          {linha.cantor_banda || "—"}
+                          {linha.cantor_banda || "â€”"}
                         </span>
                       </span>
                     </button>
@@ -1315,7 +1311,7 @@ export function LouvoresTable({
                     </Badge>
                     {linha.tonalidade && <Badge variant="outline">{linha.tonalidade}</Badge>}
                     <span className="text-xs text-muted-foreground">
-                      Última: {formatarDataCurta(linha.ultima_execucao)}
+                      Ãšltima: {formatarDataCurta(linha.ultima_execucao)}
                     </span>
                   </div>
 
@@ -1400,11 +1396,11 @@ export function LouvoresTable({
                       </div>
                       <div className="flex flex-col gap-1">
                         <span className="text-xs font-medium text-muted-foreground">
-                          Observações
+                          ObservaÃ§Ãµes
                         </span>
                         <textarea
                           className="caderno-linhas min-h-20 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
-                          placeholder="Observações sobre o louvor"
+                          placeholder="ObservaÃ§Ãµes sobre o louvor"
                           value={detalhesDraft.observacoes}
                           disabled={!editavel}
                           onChange={(e) =>
@@ -1526,3 +1522,4 @@ export function LouvoresTable({
 }
 
 export default LouvoresTable;
+
