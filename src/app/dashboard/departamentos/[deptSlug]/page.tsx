@@ -119,16 +119,39 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
     return buscarVideosYoutube(query);
   }
 
+  function imagemDoDepartamento(nome: string): string {
+    const n = nome.toLowerCase();
+    if (/adolescen|jovem|jovens|youth|teen/.test(n))
+      return "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&q=80";
+    if (/crian|kids|infantil|infanto/.test(n))
+      return "https://images.unsplash.com/photo-1588702547919-26089e690ecc?w=1200&q=80";
+    if (/adulto|adult|melhor idade|s[eê]nior/.test(n))
+      return "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=1200&q=80";
+    if (/loa|aban|worship|louvor/.test(n))
+      return "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&q=80";
+    return "https://images.unsplash.com/photo-1501386761578-eaa54b915e8a?w=1200&q=80";
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="bg-gradient-to-r from-violet-700 via-fuchsia-600 to-amber-500 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
-          {departamento.nome}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Planilha de louvores — código {departamento.codigo_prefixo}1, {departamento.codigo_prefixo}2...
-        </p>
-      </header>
+      {/* Banner de imagem realista, específico por departamento */}
+      <div className="relative -mx-4 -mt-4 mb-2 h-40 overflow-hidden rounded-t-2xl md:-mx-6 md:-mt-6 md:h-52">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imagemDoDepartamento(departamento.nome)}
+          alt=""
+          className="h-full w-full object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent" />
+        <div className="absolute bottom-0 left-0 p-4 md:p-6">
+          <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-lg">
+            {departamento.nome}
+          </h1>
+          <p className="text-sm text-white/70">
+            Planilha de louvores · {departamento.codigo_prefixo}1, {departamento.codigo_prefixo}2…
+          </p>
+        </div>
+      </div>
 
       <LouvoresTable
         data={louvores}

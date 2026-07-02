@@ -197,6 +197,7 @@ export function LouvoresTable({
   });
   const [isSavingNewRow, setIsSavingNewRow] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
+  const [favoritoSavingId, setFavoritoSavingId] = React.useState<string | null>(null);
   const [buscandoMetadados, setBuscandoMetadados] = React.useState(false);
   const [buscandoVideos, setBuscandoVideos] = React.useState(false);
   const [painelBusca, setPainelBusca] = React.useState<{
@@ -336,10 +337,13 @@ export function LouvoresTable({
 
   async function alternarFavorito(linha: LouvorPlanilha) {
     setErro(null);
+    setFavoritoSavingId(linha.id);
     try {
       await onAlternarFavorito(linha.id, !linha.favorito);
     } catch {
-      setErro("NÃ£o foi possÃ­vel atualizar o favorito.");
+      setErro("Não foi possível atualizar o favorito.");
+    } finally {
+      setFavoritoSavingId(null);
     }
   }
 
@@ -648,19 +652,25 @@ export function LouvoresTable({
         header: "",
         cell: ({ row }) => {
           const linha = row.original;
+          const salvando = favoritoSavingId === linha.id;
           return (
             <button
               type="button"
               onClick={() => alternarFavorito(linha)}
-              className="text-muted-foreground/50 transition-colors hover:text-amber-500"
+              disabled={salvando}
+              className="text-muted-foreground/50 transition-colors hover:text-amber-500 disabled:opacity-60"
               title={linha.favorito ? "Remover dos favoritos" : "Marcar como favorito"}
             >
-              <Star
-                className={cn(
-                  "h-4 w-4",
-                  linha.favorito && "fill-amber-400 text-amber-500"
-                )}
-              />
+              {salvando ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Star
+                  className={cn(
+                    "h-4 w-4 transition-all",
+                    linha.favorito && "fill-amber-400 text-amber-500"
+                  )}
+                />
+              )}
             </button>
           );
         },
@@ -730,16 +740,16 @@ export function LouvoresTable({
         },
       },
       {
-        accessorKey: "tonalidade",
-        header: "Tom",
+        accessorKey: “tonalidade”,
+        header: “Tom”,
         cell: ({ row }) => {
           const linha = row.original;
           const emEdicao = editingRowId === linha.id;
           if (!emEdicao) {
             return linha.tonalidade ? (
-              <Badge variant="outline">{linha.tonalidade}</Badge>
+              <Badge variant=”outline” className=”whitespace-nowrap”>{linha.tonalidade}</Badge>
             ) : (
-              <span className="text-muted-foreground">â€”</span>
+              <span className=”text-muted-foreground”>—</span>
             );
           }
           return (
@@ -1297,12 +1307,17 @@ export function LouvoresTable({
                     <button
                       type="button"
                       onClick={() => alternarFavorito(linha)}
-                      className="shrink-0 text-muted-foreground/50 transition-colors hover:text-amber-500"
+                      disabled={favoritoSavingId === linha.id}
+                      className="shrink-0 text-muted-foreground/50 transition-colors hover:text-amber-500 disabled:opacity-60"
                       title={linha.favorito ? "Remover dos favoritos" : "Marcar como favorito"}
                     >
-                      <Star
-                        className={cn("h-5 w-5", linha.favorito && "fill-amber-400 text-amber-500")}
-                      />
+                      {favoritoSavingId === linha.id ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Star
+                          className={cn("h-5 w-5", linha.favorito && "fill-amber-400 text-amber-500")}
+                        />
+                      )}
                     </button>
                   </div>
 

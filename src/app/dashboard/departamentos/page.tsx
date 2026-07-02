@@ -10,7 +10,7 @@ import {
   type NovoDepartamentoInput,
 } from "@/components/DepartamentosManager";
 import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
-import { podeGerenciarDepartamentos } from "@/core/auth/permissoes";
+import { ehAdminDePainel, ehSuperAdmin, podeGerenciarDepartamentos } from "@/core/auth/permissoes";
 import { gerarSlug } from "@/core/utils/slug";
 import {
   atualizarDepartamento,
@@ -42,7 +42,10 @@ export default async function DepartamentosIndexPage() {
   // Administrador de Painel, Líder e Membro só visualizam o próprio departamento.
   const podeGerenciar = podeGerenciarDepartamentos(usuarioAtual);
 
-  if (!podeGerenciar && usuarioAtual?.departamento_id) {
+  // Super Admin e Admin comum ficam na listagem (vêem todos os grupos).
+  // Líder e Membro são redirecionados direto para o próprio departamento.
+  const veTodos = ehSuperAdmin(usuarioAtual) || ehAdminDePainel(usuarioAtual);
+  if (!veTodos && usuarioAtual?.departamento_id) {
     const meuDepartamento = await getDepartamentoPorId(usuarioAtual.departamento_id);
     if (meuDepartamento) {
       redirect(`/dashboard/departamentos/${meuDepartamento.slug}`);
