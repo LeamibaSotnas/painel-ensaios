@@ -5,6 +5,7 @@ import { LouvoresTable } from "@/components/LouvoresTable";
 import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
 import { podeEditarDepartamento, podeVerDepartamento } from "@/core/auth/permissoes";
 import { gerarProximoCodigo } from "@/core/utils/code-generator";
+import { imagemDoDepartamento } from "@/core/utils/dept-imagem";
 import { buscarMetadadosYoutube, buscarVideosYoutube } from "@/core/utils/youtube";
 import {
   alternarFavorito,
@@ -119,37 +120,30 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
     return buscarVideosYoutube(query);
   }
 
-  function imagemDoDepartamento(nome: string): string {
-    const n = nome.toLowerCase();
-    if (/adolescen|jovem|jovens|youth|teen/.test(n))
-      return "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&q=80";
-    if (/crian|kids|infantil|infanto/.test(n))
-      return "https://images.unsplash.com/photo-1588702547919-26089e690ecc?w=1200&q=80";
-    if (/adulto|adult|melhor idade|s[eê]nior/.test(n))
-      return "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=1200&q=80";
-    if (/loa|aban|worship|louvor/.test(n))
-      return "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&q=80";
-    return "https://images.unsplash.com/photo-1501386761578-eaa54b915e8a?w=1200&q=80";
-  }
-
   return (
     <div className="flex flex-col gap-6">
-      {/* Banner de imagem realista, específico por departamento */}
-      <div className="relative -mx-4 -mt-4 mb-2 h-40 overflow-hidden rounded-t-2xl md:-mx-6 md:-mt-6 md:h-52">
+      {/* Banner com imagem específica do departamento + nome elegante sobreposto */}
+      <div className="relative -mx-4 -mt-4 mb-2 h-44 overflow-hidden rounded-t-2xl md:-mx-6 md:-mt-6 md:h-56">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={imagemDoDepartamento(departamento.nome)}
           alt=""
           className="h-full w-full object-cover object-center"
+          loading="eager"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent" />
-        <div className="absolute bottom-0 left-0 p-4 md:p-6">
-          <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-lg">
+        {/* gradiente duplo: escurece base para legibilidade + toque sutil no topo */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
+        {/* Nome elegante sobre a imagem */}
+        <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 md:px-7 md:pb-6">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-white/50">
+            Planilha de louvores · {departamento.codigo_prefixo}
+          </p>
+          <h1
+            className="text-3xl font-black uppercase tracking-[0.12em] text-white md:text-4xl"
+            style={{ textShadow: "0 0 40px rgba(168,85,247,0.6), 0 2px 8px rgba(0,0,0,0.9)" }}
+          >
             {departamento.nome}
           </h1>
-          <p className="text-sm text-white/70">
-            Planilha de louvores · {departamento.codigo_prefixo}1, {departamento.codigo_prefixo}2…
-          </p>
         </div>
       </div>
 

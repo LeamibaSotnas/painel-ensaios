@@ -11,6 +11,7 @@ import {
 } from "@/components/DepartamentosManager";
 import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
 import { ehAdminDePainel, ehSuperAdmin, podeGerenciarDepartamentos } from "@/core/auth/permissoes";
+import { imagemDoDepartamento } from "@/core/utils/dept-imagem";
 import { gerarSlug } from "@/core/utils/slug";
 import {
   atualizarDepartamento,
@@ -122,23 +123,45 @@ export default async function DepartamentosIndexPage() {
         </p>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {departamentos.map((departamento) => (
           <Link
             key={departamento.id}
             href={`/dashboard/departamentos/${departamento.slug}`}
-            className="flex items-center gap-3 rounded-2xl border border-violet-100 bg-white/70 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md"
+            className="group overflow-hidden rounded-2xl border border-violet-100 bg-white/70 shadow-sm transition-all hover:-translate-y-1 hover:border-violet-200 hover:shadow-lg"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-fuchsia-100 text-violet-600">
-              <Music2 className="h-4 w-4" />
-            </span>
-            <div className="flex flex-1 flex-col">
-              <span className="font-medium">{departamento.nome}</span>
-              <span className="text-xs text-muted-foreground">
+            {/* Miniatura da imagem — mesma imagem da página interna */}
+            <div className="relative h-28 overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imagemDoDepartamento(departamento.nome)}
+                alt=""
+                className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              {/* Nome do grupo sobre a imagem */}
+              <div className="absolute bottom-0 left-0 right-0 px-3 pb-2.5">
+                <p
+                  className="text-sm font-black uppercase tracking-widest text-white leading-tight"
+                  style={{ textShadow: "0 0 20px rgba(168,85,247,0.7), 0 1px 4px rgba(0,0,0,0.9)" }}
+                >
+                  {departamento.nome}
+                </p>
+              </div>
+            </div>
+            {/* Rodapé do card */}
+            <div className="flex items-center gap-3 px-4 py-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-fuchsia-100 text-violet-600">
+                <Music2 className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1 text-xs text-muted-foreground">
                 Código {departamento.codigo_prefixo}
               </span>
+              <Badge variant="outline" className="shrink-0 text-xs">
+                {departamento.codigo_prefixo}
+              </Badge>
             </div>
-            <Badge variant="outline">{departamento.codigo_prefixo}</Badge>
           </Link>
         ))}
       </div>

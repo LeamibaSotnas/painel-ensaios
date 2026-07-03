@@ -96,6 +96,31 @@
   }
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Aurora Gradient — animação de luz suave para a tela de login
+   ───────────────────────────────────────────────────────────── */
+@keyframes aurora-wave {
+  0%   { background-position: 0%   50%, 100% 50%, 50% 0%,   50% 100%; }
+  25%  { background-position: 30%  80%, 70%  20%, 80% 30%,  20% 70%;  }
+  50%  { background-position: 100% 50%, 0%   50%, 50% 100%, 50% 0%;   }
+  75%  { background-position: 70%  20%, 30%  80%, 20% 70%,  80% 30%;  }
+  100% { background-position: 0%   50%, 100% 50%, 50% 0%,   50% 100%; }
+}
+
+.aurora-login {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 130% 90% at 0% 0%,   rgba(168, 85, 247, 0.65), transparent 55%),
+    radial-gradient(ellipse 110% 80% at 100% 100%, rgba(244, 114, 182, 0.55), transparent 55%),
+    radial-gradient(ellipse 90%  70% at 100% 0%,  rgba(96, 165, 250, 0.45), transparent 55%),
+    radial-gradient(ellipse 90%  70% at 0%   100%, rgba(52, 211, 153, 0.35), transparent 55%);
+  background-size: 200% 200%;
+  animation: aurora-wave 14s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
 @layer utilities {
   /* Estilo "caderno inteligente": linhas horizontais suaves, como um planner
      ou caderno executivo organizado — usado em áreas de anotação livre
