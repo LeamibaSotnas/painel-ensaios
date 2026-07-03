@@ -102,7 +102,7 @@ function normalizarLinkYoutube(link: string | null): string | null {
 }
 
 function formatarDataCurta(data: string | null): string {
-  if (!data) return "â€”";
+  if (!data) return "—";
   return new Date(`${data}T00:00:00`).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
@@ -110,7 +110,7 @@ function formatarDataCurta(data: string | null): string {
   });
 }
 
-// Bloco Unicode "Combining Diacritical Marks" (U+0300â€“U+036F) â€” construÃ­do a
+// Bloco Unicode "Combining Diacritical Marks" (U+0300â€"U+036F) â€" construÃ­do a
 // partir dos cÃ³digos de caractere (0x300 a 0x36f), para nÃ£o depender de
 // glifos especiais armazenados diretamente no arquivo-fonte.
 const MARCAS_DIACRITICAS = new RegExp(`[\\u0300-\\u036f]`, "g");
@@ -120,7 +120,7 @@ function normalizarTexto(texto: string): string {
   return texto.normalize("NFD").replace(MARCAS_DIACRITICAS, "").toLowerCase().trim();
 }
 
-/** DistÃ¢ncia de Levenshtein simples â€” usada para tolerar pequenos erros de digitaÃ§Ã£o. */
+/** DistÃ¢ncia de Levenshtein simples â€" usada para tolerar pequenos erros de digitaÃ§Ã£o. */
 function distanciaEdicao(a: string, b: string): number {
   if (a === b) return 0;
   const linhas = a.length;
@@ -148,7 +148,7 @@ function distanciaEdicao(a: string, b: string): number {
  * Busca inteligente "sem custo": tolerante a acentos e a pequenos erros de
  * digitaÃ§Ã£o, e capaz de encontrar o termo em qualquer parte do texto
  * (nome, cantor, trecho da cifra/observaÃ§Ãµes, tom ou cÃ³digo). NÃ£o usa
- * nenhuma API de IA externa â€” tudo roda localmente, no navegador.
+ * nenhuma API de IA externa â€" tudo roda localmente, no navegador.
  */
 function correspondeABusca(termoBusca: string, textoCompleto: string): boolean {
   const termo = normalizarTexto(termoBusca);
@@ -228,7 +228,7 @@ export function LouvoresTable({
     return Array.from(tons).sort();
   }, [data]);
 
-  // SugestÃµes de autocomplete ao cadastrar uma mÃºsica nova â€” evita duplicidade
+  // SugestÃµes de autocomplete ao cadastrar uma mÃºsica nova â€" evita duplicidade
   // e agiliza a digitaÃ§Ã£o reaproveitando nomes/cantores jÃ¡ usados no painel.
   const sugestoesNomes = React.useMemo(() => {
     const nomes = new Set<string>();
@@ -253,7 +253,7 @@ export function LouvoresTable({
       if (filtroTom && linha.tonalidade !== filtroTom) return false;
       if (termo) {
         // Busca inteligente: nome, cantor, tom, cÃ³digo, trecho da cifra e
-        // observaÃ§Ãµes â€” tolerante a acentos e a pequenos erros de digitaÃ§Ã£o.
+        // observaÃ§Ãµes â€" tolerante a acentos e a pequenos erros de digitaÃ§Ã£o.
         const alvo = [
           linha.nome_louvor,
           linha.cantor_banda,
@@ -391,7 +391,7 @@ export function LouvoresTable({
       const metadados = await onBuscarMetadadosYoutube(linkNormalizado);
       if (metadados) aplicar(metadados);
     } catch {
-      // captura de metadados Ã© apenas um complemento â€” falha silenciosa
+      // captura de metadados Ã© apenas um complemento â€" falha silenciosa
     } finally {
       setBuscandoMetadados(false);
     }
@@ -410,7 +410,7 @@ export function LouvoresTable({
       const resultados = await onBuscarVideosYoutube(query);
       // Nota: NÃƒO chamamos window.open() aqui. Depois de um `await`, o
       // navegador jÃ¡ perdeu a "ativaÃ§Ã£o transitÃ³ria" do clique original e
-      // bloqueia popups silenciosamente (sem erro no console) â€” foi o que
+      // bloqueia popups silenciosamente (sem erro no console) â€" foi o que
       // causava o botÃ£o "nÃ£o fazer nada" depois de configurar a busca
       // inteligente (a chamada Ã  API passou a ter uma espera real). Em vez
       // disso, mostramos um link manual que o prÃ³prio usuÃ¡rio clica.
@@ -444,7 +444,7 @@ export function LouvoresTable({
     // 1) a tabela tem `overflow-x-auto`, que recorta (clipa) qualquer
     //    elemento posicionado de forma absoluta que ultrapasse a borda;
     // 2) o card do dashboard usa `backdrop-blur-xl`, e `backdrop-filter`
-    //    cria um novo "containing block" para elementos `fixed` â€” ou seja,
+    //    cria um novo "containing block" para elementos `fixed` â€" ou seja,
     //    mesmo um modal `fixed inset-0` ficava preso dentro desse cartÃ£o
     //    (pequeno, deslocado), em vez de centralizar na tela inteira.
     // Um Portal escapa de ambos os problemas de uma vez.
@@ -726,7 +726,7 @@ export function LouvoresTable({
           const emEdicao = editingRowId === linha.id;
           if (!emEdicao) {
             return (
-              <span className="text-muted-foreground">{linha.cantor_banda || "â€”"}</span>
+              <span className="text-muted-foreground">{linha.cantor_banda || "—"}</span>
             );
           }
           return (
@@ -740,16 +740,16 @@ export function LouvoresTable({
         },
       },
       {
-        accessorKey: “tonalidade”,
-        header: “Tom”,
+        accessorKey: "tonalidade",
+        header: "Tom",
         cell: ({ row }) => {
           const linha = row.original;
           const emEdicao = editingRowId === linha.id;
           if (!emEdicao) {
             return linha.tonalidade ? (
-              <Badge variant=”outline” className=”whitespace-nowrap”>{linha.tonalidade}</Badge>
+              <Badge variant="outline" className="whitespace-nowrap">{linha.tonalidade}</Badge>
             ) : (
-              <span className=”text-muted-foreground”>—</span>
+              <span className="text-muted-foreground">—</span>
             );
           }
           return (
@@ -1200,7 +1200,7 @@ export function LouvoresTable({
         </Table>
       </div>
 
-      {/* VersÃ£o mobile â€” lista de cards, dedicada para telas pequenas */}
+      {/* VersÃ£o mobile â€" lista de cards, dedicada para telas pequenas */}
       <div className="flex flex-col gap-2.5 md:hidden">
         {dadosFiltrados.length === 0 && !isAddingRow && (
           <p className="py-8 text-center text-sm text-muted-foreground">
@@ -1300,7 +1300,7 @@ export function LouvoresTable({
                       <span>
                         <span className="block font-medium leading-tight">{linha.nome_louvor}</span>
                         <span className="block text-xs text-muted-foreground">
-                          {linha.cantor_banda || "â€”"}
+                          {linha.cantor_banda || "—"}
                         </span>
                       </span>
                     </button>
