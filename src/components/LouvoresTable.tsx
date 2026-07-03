@@ -600,7 +600,8 @@ export function LouvoresTable({
           href={link}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-red-600 hover:underline"
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-opacity hover:opacity-80"
+          style={{ background: tema.gradiente, color: tema.accent, border: `1px solid ${tema.cor}` }}
         >
           <Music2 className="h-3.5 w-3.5" />
           Abrir no YouTube
@@ -612,17 +613,18 @@ export function LouvoresTable({
         href={link}
         target="_blank"
         rel="noopener noreferrer"
-        className="group flex items-center gap-2 rounded-md"
+        className="group flex items-center gap-2 overflow-hidden rounded-lg transition-opacity hover:opacity-90"
         title={linha.youtube_titulo ?? "Abrir no YouTube"}
+        style={{ border: `1.5px solid ${tema.cor}`, background: tema.gradiente }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={linha.youtube_thumbnail}
           alt=""
-          className="h-9 w-16 rounded-sm object-cover"
+          className="h-9 w-16 shrink-0 object-cover"
         />
-        <span className="flex max-w-32 flex-col">
-          <span className="truncate text-xs font-medium group-hover:underline">
+        <span className="flex min-w-0 flex-col pr-2">
+          <span className="truncate text-xs font-semibold group-hover:underline" style={{ color: tema.accent }}>
             {linha.youtube_titulo || "Vídeo"}
           </span>
           {linha.youtube_canal ? (
@@ -653,7 +655,7 @@ export function LouvoresTable({
             </span>
           )}
         </div>
-        <div className="aspect-video w-full max-w-md overflow-hidden rounded-xl border border-violet-100 shadow-sm">
+        <div className="aspect-video w-full max-w-md overflow-hidden rounded-xl shadow-sm" style={{ border: `2px solid ${tema.cor}` }}>
           <iframe
             src={`https://www.youtube.com/embed/${videoId}`}
             title={linha.youtube_titulo || "Player do YouTube"}
@@ -1247,7 +1249,8 @@ export function LouvoresTable({
               className="rounded-lg border p-3"
               style={{
                 background: emEdicao ? tema.gradiente : "rgba(255,255,255,0.7)",
-                borderColor: emEdicao ? tema.cor : undefined,
+                borderColor: tema.cor,
+                borderLeftWidth: emEdicao ? "1px" : "3px",
               }}
             >
               {emEdicao ? (
