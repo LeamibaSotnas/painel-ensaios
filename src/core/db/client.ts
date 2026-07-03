@@ -110,10 +110,12 @@ async function semearDepartamentosPadrao() {
   if (rows[0]?.total > 0) return;
 
   const padroes = [
-    { nome: "Jovens", slug: "jovens", codigo_prefixo: "SA" },
-    { nome: "Adolescentes", slug: "adolescentes", codigo_prefixo: "AD" },
-    { nome: "Crianças", slug: "criancas", codigo_prefixo: "JD" },
-    { nome: "Irmãs", slug: "irmas", codigo_prefixo: "RS" },
+    { nome: "SOM DE ADORADORES",  slug: "som-de-adoradores",  codigo_prefixo: "SA" },
+    { nome: "HERÓIS DA FÉ",       slug: "herois-da-fe",        codigo_prefixo: "AD" },
+    { nome: "JARDIM DE DEUS",     slug: "jardim-de-deus",      codigo_prefixo: "JD" },
+    { nome: "ROSA DE SARON",      slug: "rosa-de-saron",       codigo_prefixo: "RS" },
+    { nome: "SHEKNA",             slug: "shekna",              codigo_prefixo: "SK" },
+    { nome: "FRUTOS DA PROMESSA", slug: "frutos-da-promessa",  codigo_prefixo: "FP" },
   ];
 
   for (const dep of padroes) {
@@ -140,16 +142,39 @@ async function semearAdminPadrao() {
   `;
 }
 
+/**
+ * Renomeia os departamentos que ainda têm os nomes legados (antes do lançamento oficial).
+ * Idempotente: só age nas linhas que correspondam ao slug antigo.
+ */
+async function renomearDepartamentosLegados() {
+  const renames = [
+    { slug_antigo: "jovens",       nome_novo: "SOM DE ADORADORES",  slug_novo: "som-de-adoradores"  },
+    { slug_antigo: "adolescentes", nome_novo: "HEROIS DA FE",       slug_novo: "herois-da-fe"        },
+    { slug_antigo: "criancas",     nome_novo: "JARDIM DE DEUS",     slug_novo: "jardim-de-deus"      },
+    { slug_antigo: "irmas",        nome_novo: "ROSA DE SARON",      slug_novo: "rosa-de-saron"       },
+    { slug_antigo: "orquestra",    nome_novo: "SHEKNA",             slug_novo: "shekna"              },
+    { slug_antigo: "banda",        nome_novo: "FRUTOS DA PROMESSA", slug_novo: "frutos-da-promessa"  },
+  ];
+  for (const r of renames) {
+    await sql`
+      UPDATE departamentos
+      SET nome = ${r.nome_novo}, slug = ${r.slug_novo}
+      WHERE slug = ${r.slug_antigo}
+    `;
+  }
+}
+
 async function inicializarBanco() {
   await criarEsquema();
   await aplicarMigracoesDeColunas();
+  await renomearDepartamentosLegados();
   await semearDepartamentosPadrao();
   await semearAdminPadrao();
 }
 
 let esquemaProntoPromise: Promise<void> | null = null;
 
-/** Garante que o schema/seed já foi aplicado e retorna o cliente `sql` do @vercel/postgres. */
+/** Garante que o schema/seed ja foi aplicado e retorna o cliente `sql` do @vercel/postgres. */
 export async function getDb() {
   if (!esquemaProntoPromise) {
     esquemaProntoPromise = inicializarBanco();

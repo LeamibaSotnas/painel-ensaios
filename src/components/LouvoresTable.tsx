@@ -49,6 +49,7 @@ import type {
   NovoLouvorInput,
 } from "@/types/database.types";
 import { extrairIdYoutube, type ResultadoBuscaYoutube } from "@/core/utils/youtube";
+import { temaDoDepartamento } from "@/core/utils/dept-tema";
 
 export interface LouvoresTableProps {
   /** Linhas da planilha do departamento atual. */
@@ -57,6 +58,8 @@ export interface LouvoresTableProps {
   departamentoId: string;
   /** Prefixo do departamento (ex.: "MOC"), usado só para exibição. */
   codigoPrefixo: string;
+  /** Nome do departamento — usado para aplicar o tema de cores. */
+  nomeDepartamento?: string;
   /** Quando falso, a planilha fica somente leitura (ex.: regra MUSICOS). */
   editavel?: boolean;
   /** Persiste a edição de campos de uma linha existente. */
@@ -173,6 +176,7 @@ export function LouvoresTable({
   data,
   departamentoId,
   codigoPrefixo,
+  nomeDepartamento = "",
   editavel = true,
   onAtualizarLinha,
   onAdicionarLinha,
@@ -184,6 +188,7 @@ export function LouvoresTable({
   onBuscarMetadadosYoutube,
   onBuscarVideosYoutube,
 }: LouvoresTableProps) {
+  const tema = temaDoDepartamento(nomeDepartamento);
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "ordem_execucao", desc: false },
   ]);
@@ -453,25 +458,36 @@ export function LouvoresTable({
       // alcançar com o polegar); a partir de sm: passa a ser um modal
       // centralizado e mais largo, como no notebook/desktop.
       <div
-        className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center sm:p-4"
+        className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
         onClick={() => setPainelBusca(null)}
       >
         <div
-          className="max-h-[85vh] w-full overflow-y-auto rounded-t-2xl border border-violet-100 bg-white p-3 shadow-2xl sm:max-h-[80vh] sm:max-w-lg sm:rounded-2xl md:max-w-xl md:p-4"
+          className="max-h-[85vh] w-full overflow-hidden rounded-t-2xl shadow-2xl sm:max-h-[80vh] sm:max-w-lg sm:rounded-2xl md:max-w-xl"
+          style={{ border: `1px solid ${tema.cor}` }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between px-1 pb-2">
-            <span className="text-sm font-semibold text-foreground">
+          {/* Header com gradiente do departamento */}
+          <div
+            className="flex items-center justify-between px-4 py-3"
+            style={{ background: tema.gradienteVivo }}
+          >
+            <span className="text-sm font-bold tracking-wide" style={{ color: tema.textoHeader }}>
               Resultados do YouTube
             </span>
             <button
               type="button"
               onClick={() => setPainelBusca(null)}
-              className="rounded-md p-1 text-muted-foreground hover:bg-violet-50 hover:text-foreground"
+              className="rounded-md p-1 opacity-80 hover:opacity-100 transition-opacity"
+              style={{ color: tema.textoHeader }}
             >
               <X className="h-4 w-4" />
             </button>
           </div>
+          {/* Corpo com fundo branco e tint suave do departamento */}
+          <div
+            className="overflow-y-auto p-3 md:p-4"
+            style={{ background: `linear-gradient(to bottom, ${tema.gradiente.replace('145deg', '180deg')}, #fff 60%)` }}
+          >
           {painelBusca.resultados === null ? (
           <div className="flex flex-col gap-2 px-1 py-3">
             <p className="text-sm text-muted-foreground">
@@ -482,7 +498,8 @@ export function LouvoresTable({
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setPainelBusca(null)}
-              className="inline-flex items-center justify-center rounded-lg bg-violet-50 px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-100"
+              className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold transition-opacity hover:opacity-80"
+              style={{ background: tema.gradiente, color: tema.accent, border: `1px solid ${tema.cor}` }}
             >
               Abrir no YouTube
             </a>
@@ -496,7 +513,10 @@ export function LouvoresTable({
                 key={resultado.id}
                 type="button"
                 onClick={() => selecionarVideoBusca(contexto, resultado)}
-                className="flex items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-violet-50"
+                className="flex items-center gap-3 rounded-xl p-2 text-left transition-colors"
+                style={{ ["--hover-bg" as string]: tema.gradiente }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = tema.gradiente)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "")}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -514,6 +534,7 @@ export function LouvoresTable({
             ))}
           </div>
           )}
+          </div>{/* fim corpo */}
         </div>
       </div>,
       document.body
@@ -1034,8 +1055,12 @@ export function LouvoresTable({
                     ))}
                   </TableRow>
                   {expandido && (
-                    <TableRow className="bg-muted/20">
-                      <TableCell colSpan={columns.length} className="space-y-2 py-3">
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="space-y-2 py-3"
+                        style={{ background: tema.gradiente, borderTop: `2px solid ${tema.borda}` }}
+                      >
                         <div className="grid gap-3 sm:grid-cols-2">
                           <PlayerYoutube linha={linha} />
                           <div className="flex flex-col gap-1">
@@ -1097,7 +1122,7 @@ export function LouvoresTable({
             })}
 
             {isAddingRow && (
-              <TableRow className="bg-muted/30">
+              <TableRow style={{ background: tema.gradiente, outline: `2px solid ${tema.cor}`, outlineOffset: "-2px" }}>
                 <TableCell />
                 <TableCell>
                   <Badge variant="outline" className="font-mono text-muted-foreground">
@@ -1219,10 +1244,11 @@ export function LouvoresTable({
           return (
             <div
               key={linha.id}
-              className={cn(
-                "rounded-lg border bg-white/70 p-3",
-                emEdicao && "bg-muted/40"
-              )}
+              className="rounded-lg border p-3"
+              style={{
+                background: emEdicao ? tema.gradiente : "rgba(255,255,255,0.7)",
+                borderColor: emEdicao ? tema.cor : undefined,
+              }}
             >
               {emEdicao ? (
                 <div className="flex flex-col gap-2">
@@ -1390,7 +1416,10 @@ export function LouvoresTable({
                   </div>
 
                   {expandido && (
-                    <div className="mt-2.5 space-y-2 border-t pt-2.5">
+                    <div
+                      className="mt-2.5 space-y-2 border-t pt-2.5"
+                      style={{ borderColor: tema.borda, background: tema.gradiente, borderRadius: "0.5rem", padding: "0.75rem", marginTop: "0.75rem" }}
+                    >
                       <PlayerYoutube linha={linha} />
                       <div className="flex flex-col gap-1">
                         <span className="text-xs font-medium text-muted-foreground">Cifra</span>
@@ -1439,7 +1468,10 @@ export function LouvoresTable({
         })}
 
         {isAddingRow && (
-          <div className="rounded-lg border bg-muted/30 p-3">
+          <div
+            className="rounded-lg border p-3"
+            style={{ background: tema.gradiente, borderColor: tema.cor }}
+          >
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="font-mono text-muted-foreground">
@@ -1530,10 +1562,3 @@ export function LouvoresTable({
 }
 
 export default LouvoresTable;
-
-
-
-
-
-
-

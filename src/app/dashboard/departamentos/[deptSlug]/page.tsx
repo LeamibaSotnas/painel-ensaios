@@ -151,6 +151,7 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
         data={louvores}
         departamentoId={departamentoId}
         codigoPrefixo={codigoPrefixoDepartamento}
+        nomeDepartamento={departamento.nome}
         editavel={podeEditar}
         onAtualizarLinha={handleAtualizarLinha}
         onAdicionarLinha={handleAdicionarLinha}
