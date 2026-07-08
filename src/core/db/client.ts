@@ -125,11 +125,20 @@ async function aplicarMigracoesDeColunas() {
   await sql`CREATE INDEX IF NOT EXISTS idx_observacoes_status ON observacoes_mural (status);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_observacoes_criado ON observacoes_mural (criado_em DESC);`;
 
-  // Amplia a regra CHECK de `usuarios` para aceitar o novo papel ADMIN_PAINEL
-  // (Administrador de Painel) em bancos já existentes — a constraint é recriada
-  // de forma idempotente a cada inicialização.
-  await sql`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_regra_check;`;
-  await sql`ALTER TABLE usuarios ADD CONSTRAINT usuarios_regra_check CHECK (regra IN ('ADMIN', 'ADMIN_PAINEL', 'LIDER', 'MUSICOS'));`;
+  // Amplia a regra CHECK de `usuarios` para aceitar o novo papel ADMIN_PAINEL.
+  // Usa DO $$ ... $$ para tornar a operação idempotente — sem falhar quando a
+  // constraint já existe (ex.: múltiplas Lambdas Vercel rodando em paralelo).
+  await sql`
+    DO $$
+    BEGIN
+      ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_regra_check;
+      ALTER TABLE usuarios
+        ADD CONSTRAINT usuarios_regra_check
+        CHECK (regra IN ('ADMIN', 'ADMIN_PAINEL', 'LIDER', 'MUSICOS'));
+    EXCEPTION WHEN others THEN
+      NULL; -- ignora silenciosamente (ex.: constraint já existe com outro nome)
+    END $$;
+  `;
 }
 
 async function semearDepartamentosPadrao() {

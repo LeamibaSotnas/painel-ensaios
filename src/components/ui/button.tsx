@@ -95,19 +95,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     }
 
     return (
-      <>
-        <style>{`
-          @keyframes btn-ripple {
-            to { transform: scale(1); opacity: 0; }
-          }
-        `}</style>
-        <Comp
-          className={cn(buttonVariants({ variant, size, className }))}
-          ref={ref}
-          onPointerDown={asChild ? onPointerDown : handleRipple}
-          {...props}
-        />
-      </>
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        onPointerDown={asChild ? onPointerDown : handleRipple}
+        {...props}
+      />
     );
   }
 );
