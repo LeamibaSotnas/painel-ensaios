@@ -83,38 +83,41 @@ async function criarEsquema() {
  * nativamente — instalações existentes recebem os novos campos
  * automaticamente, sem perder dados.
  */
-/** Executa um SQL silenciosamente — nunca propaga erro (usado em migrações idempotentes). */
-async function sqlSilent(strings: TemplateStringsArray, ...values: unknown[]) {
+/**
+ * Executa uma migração silenciosamente: nunca propaga erro.
+ * Usa closure para garantir que `sql` seja chamado como tagged template
+ * de verdade (não como função regular) — compatível com @vercel/postgres.
+ */
+async function m(fn: () => Promise<unknown>) {
   try {
-    // @ts-expect-error — repassa o template literal para sql do @vercel/postgres
-    await sql(strings, ...values);
+    await fn();
   } catch {
-    // Silencia: colunas já existem, constraints duplicadas, etc.
+    // Silencia: coluna/tabela já existente, constraint duplicada, etc.
   }
 }
 
 async function aplicarMigracoesDeColunas() {
   // ── Colunas legadas (fase 1) ──────────────────────────────────────────────
-  await sqlSilent`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS departamento_id TEXT REFERENCES departamentos (id) ON DELETE SET NULL`;
-  await sqlSilent`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS youtube_titulo TEXT`;
-  await sqlSilent`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS youtube_thumbnail TEXT`;
-  await sqlSilent`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS cifra TEXT NOT NULL DEFAULT ''`;
-  await sqlSilent`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS observacoes TEXT NOT NULL DEFAULT ''`;
-  await sqlSilent`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS favorito BOOLEAN NOT NULL DEFAULT false`;
-  await sqlSilent`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS ultima_execucao TEXT`;
-  await sqlSilent`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS youtube_canal TEXT`;
-  await sqlSilent`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS vezes_executado INTEGER NOT NULL DEFAULT 0`;
-  await sqlSilent`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS atualizado_em TEXT NOT NULL DEFAULT now()::text`;
-  await sqlSilent`ALTER TABLE ensaios_grade ADD COLUMN IF NOT EXISTS local TEXT NOT NULL DEFAULT ''`;
-  await sqlSilent`ALTER TABLE ensaios_grade ADD COLUMN IF NOT EXISTS responsavel TEXT NOT NULL DEFAULT ''`;
-  await sqlSilent`ALTER TABLE ensaios_grade ADD COLUMN IF NOT EXISTS observacoes TEXT NOT NULL DEFAULT ''`;
+  await m(() => sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS departamento_id TEXT REFERENCES departamentos (id) ON DELETE SET NULL`);
+  await m(() => sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS youtube_titulo TEXT`);
+  await m(() => sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS youtube_thumbnail TEXT`);
+  await m(() => sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS cifra TEXT NOT NULL DEFAULT ''`);
+  await m(() => sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS observacoes TEXT NOT NULL DEFAULT ''`);
+  await m(() => sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS favorito BOOLEAN NOT NULL DEFAULT false`);
+  await m(() => sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS ultima_execucao TEXT`);
+  await m(() => sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS youtube_canal TEXT`);
+  await m(() => sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS vezes_executado INTEGER NOT NULL DEFAULT 0`);
+  await m(() => sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS atualizado_em TEXT NOT NULL DEFAULT now()::text`);
+  await m(() => sql`ALTER TABLE ensaios_grade ADD COLUMN IF NOT EXISTS local TEXT NOT NULL DEFAULT ''`);
+  await m(() => sql`ALTER TABLE ensaios_grade ADD COLUMN IF NOT EXISTS responsavel TEXT NOT NULL DEFAULT ''`);
+  await m(() => sql`ALTER TABLE ensaios_grade ADD COLUMN IF NOT EXISTS observacoes TEXT NOT NULL DEFAULT ''`);
 
   // ── Colunas fase 2 (tipo_louvor / evento_nome) ────────────────────────────
-  await sqlSilent`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS tipo_louvor TEXT`;
-  await sqlSilent`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS evento_nome TEXT`;
+  await m(() => sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS tipo_louvor TEXT`);
+  await m(() => sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS evento_nome TEXT`);
 
   // ── Tabela de mural (fase 2) ──────────────────────────────────────────────
-  await sqlSilent`
+  await m(() => sql`
     CREATE TABLE IF NOT EXISTS observacoes_mural (
       id TEXT PRIMARY KEY,
       titulo TEXT NOT NULL,
@@ -128,18 +131,18 @@ async function aplicarMigracoesDeColunas() {
       criado_em TEXT NOT NULL DEFAULT now()::text,
       atualizado_em TEXT NOT NULL DEFAULT now()::text
     )
-  `;
-  await sqlSilent`CREATE INDEX IF NOT EXISTS idx_observacoes_dept ON observacoes_mural (departamento_id)`;
-  await sqlSilent`CREATE INDEX IF NOT EXISTS idx_observacoes_status ON observacoes_mural (status)`;
-  await sqlSilent`CREATE INDEX IF NOT EXISTS idx_observacoes_criado ON observacoes_mural (criado_em)`;
+  `);
+  await m(() => sql`CREATE INDEX IF NOT EXISTS idx_observacoes_dept ON observacoes_mural (departamento_id)`);
+  await m(() => sql`CREATE INDEX IF NOT EXISTS idx_observacoes_status ON observacoes_mural (status)`);
+  await m(() => sql`CREATE INDEX IF NOT EXISTS idx_observacoes_criado ON observacoes_mural (criado_em)`);
 
   // ── Constraint ADMIN_PAINEL (fase 1 RBAC) ────────────────────────────────
-  await sqlSilent`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_regra_check`;
-  await sqlSilent`
+  await m(() => sql`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_regra_check`);
+  await m(() => sql`
     ALTER TABLE usuarios
       ADD CONSTRAINT usuarios_regra_check
       CHECK (regra IN ('ADMIN', 'ADMIN_PAINEL', 'LIDER', 'MUSICOS'))
-  `;
+  `);
 }
 
 async function semearDepartamentosPadrao() {

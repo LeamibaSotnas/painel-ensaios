@@ -27,11 +27,17 @@ export async function entrar(formData: FormData) {
     redirect(`/?erro=${encodeURIComponent(MENSAGEM_ERRO_PADRAO)}`);
   }
 
+  // Se SESSION_SECRET estiver ausente nas vars de ambiente do Vercel,
+  // criarTokenSessao lança — redireciona para login com mensagem em vez de crashar.
   const token = await criarTokenSessao({
     id: usuario.id,
     regra: usuario.regra,
     departamentoId: usuario.departamento_id,
-  });
+  }).catch(() =>
+    redirect(
+      `/?erro=${encodeURIComponent("Erro de configuração do servidor. Adicione SESSION_SECRET nas variáveis de ambiente do Vercel.")}`
+    )
+  );
   const cookieStore = await cookies();
   cookieStore.set(NOME_COOKIE_SESSAO, token, {
     httpOnly: true,
