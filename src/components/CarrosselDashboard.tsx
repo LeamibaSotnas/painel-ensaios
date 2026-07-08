@@ -12,7 +12,13 @@ import {
   Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { MorphBackground } from "@/components/MorphBackground";
 import { cn } from "@/lib/utils";
+import type {
+  CategoriaObservacao,
+  ObservacaoMural,
+  PrioridadeObservacao,
+} from "@/types/database.types";
 
 /* ---------- tipos ---------- */
 export interface EnsaioResumo {
@@ -44,6 +50,19 @@ interface Props {
   proximosEnsaios: EnsaioResumo[];
   musicasMaisUsadas: MusicaResumo[];
   ultimasAlteracoes: AlteracaoResumo[];
+  observacoes?: ObservacaoMural[];
+  onCriarObservacao?: (dados: {
+    titulo: string;
+    descricao: string;
+    prioridade: PrioridadeObservacao;
+    categoria: CategoriaObservacao;
+    departamentoId: string | null;
+  }) => Promise<void>;
+  onArquivarObservacao?: (id: string) => Promise<void>;
+  onRemoverObservacao?: (id: string) => Promise<void>;
+  autorNome?: string;
+  autorId?: string;
+  departamentoIdUsuario?: string | null;
 }
 
 /* ---------- helpers ---------- */
@@ -66,34 +85,72 @@ function formatarDataHora(ts: string): string {
   });
 }
 
-/* ---------- card futurista (tema claro, compatível com o card bg-white/70) ---------- */
+/* ---------- counter animado ---------- */
+function AnimatedNumber({ value }: { value: number }) {
+  const [displayed, setDisplayed] = React.useState(0);
+  const ref = React.useRef<HTMLSpanElement>(null);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        observer.disconnect();
+        let start = 0;
+        const end = value;
+        if (end === 0) { setDisplayed(0); return; }
+        const duration = 900;
+        const step = (ts: number, startTs: number) => {
+          const progress = Math.min((ts - startTs) / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          setDisplayed(Math.round(eased * end));
+          if (progress < 1) requestAnimationFrame((t) => step(t, startTs));
+        };
+        requestAnimationFrame((ts) => step(ts, ts));
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [value]);
+
+  return <span ref={ref}>{displayed}</span>;
+}
+
+/* ---------- card de estatística premium ---------- */
 type Cor = "violet" | "fuchsia" | "amber" | "sky" | "emerald";
 
-const PALETAS: Record<Cor, { card: string; icon: string; value: string }> = {
+const PALETAS: Record<Cor, { card: string; glow: string; icon: string; accent: string }> = {
   violet: {
-    card: "border-violet-200 bg-gradient-to-br from-violet-50 to-white shadow-violet-200/60",
+    card: "border-violet-200/70 bg-gradient-to-br from-violet-50 via-white to-slate-50",
+    glow: "shadow-violet-200/60",
     icon: "bg-violet-100 text-violet-600",
-    value: "from-violet-600 to-fuchsia-600",
+    accent: "from-violet-600 to-fuchsia-600",
   },
   fuchsia: {
-    card: "border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-white shadow-fuchsia-200/60",
+    card: "border-fuchsia-200/70 bg-gradient-to-br from-fuchsia-50 via-white to-slate-50",
+    glow: "shadow-fuchsia-200/60",
     icon: "bg-fuchsia-100 text-fuchsia-600",
-    value: "from-fuchsia-600 to-pink-500",
+    accent: "from-fuchsia-600 to-pink-500",
   },
   amber: {
-    card: "border-amber-200 bg-gradient-to-br from-amber-50 to-white shadow-amber-200/60",
+    card: "border-amber-200/70 bg-gradient-to-br from-amber-50 via-white to-slate-50",
+    glow: "shadow-amber-200/60",
     icon: "bg-amber-100 text-amber-600",
-    value: "from-amber-600 to-orange-500",
+    accent: "from-amber-600 to-orange-500",
   },
   sky: {
-    card: "border-sky-200 bg-gradient-to-br from-sky-50 to-white shadow-sky-200/60",
+    card: "border-sky-200/70 bg-gradient-to-br from-sky-50 via-white to-slate-50",
+    glow: "shadow-sky-200/60",
     icon: "bg-sky-100 text-sky-600",
-    value: "from-sky-600 to-blue-500",
+    accent: "from-sky-600 to-blue-500",
   },
   emerald: {
-    card: "border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-emerald-200/60",
+    card: "border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-white to-slate-50",
+    glow: "shadow-emerald-200/60",
     icon: "bg-emerald-100 text-emerald-600",
-    value: "from-emerald-600 to-teal-500",
+    accent: "from-emerald-600 to-teal-500",
   },
 };
 
@@ -103,38 +160,55 @@ function StatCard({
   value,
   sub,
   cor,
+  isNumeric = false,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string | number;
   sub?: string;
   cor: Cor;
+  isNumeric?: boolean;
 }) {
   const p = PALETAS[cor];
   return (
     <div
       className={cn(
-        "flex h-full flex-col gap-4 rounded-2xl border p-5 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl",
-        p.card
+        "group relative flex h-full flex-col gap-4 overflow-hidden rounded-2xl border p-5",
+        "shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
+        p.card,
+        p.glow
       )}
     >
-      <span className={cn("flex h-10 w-10 items-center justify-center rounded-xl", p.icon)}>
+      {/* brilho de canto sutil */}
+      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/60 blur-2xl" />
+
+      <div
+        className={cn(
+          "flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110",
+          p.icon
+        )}
+      >
         {icon}
-      </span>
+      </div>
+
       <div className="flex flex-col">
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
           {label}
         </span>
         <span
           className={cn(
-            "mt-1 bg-gradient-to-r bg-clip-text text-3xl font-bold tracking-tight text-transparent",
-            p.value
+            "mt-1 bg-gradient-to-r bg-clip-text text-3xl font-black tracking-tight text-transparent",
+            p.accent
           )}
         >
-          {value}
+          {isNumeric && typeof value === "number" ? (
+            <AnimatedNumber value={value} />
+          ) : (
+            value
+          )}
         </span>
         {sub && (
-          <span className="mt-0.5 truncate text-xs text-muted-foreground">{sub}</span>
+          <span className="mt-1 truncate text-xs font-medium text-muted-foreground">{sub}</span>
         )}
       </div>
     </div>
@@ -162,7 +236,6 @@ function Carrossel({ slides }: { slides: React.ReactNode[] }) {
           </div>
         ))}
       </div>
-      {/* indicadores */}
       <div className="absolute bottom-1 left-1/2 flex -translate-x-1/2 gap-1.5">
         {slides.map((_, i) => (
           <button
@@ -171,14 +244,57 @@ function Carrossel({ slides }: { slides: React.ReactNode[] }) {
             onClick={() => setAtivo(i)}
             className={cn(
               "h-1.5 rounded-full transition-all duration-300",
-              i === ativo
-                ? "w-5 bg-violet-500"
-                : "w-1.5 bg-violet-200 hover:bg-violet-300"
+              i === ativo ? "w-5 bg-violet-500" : "w-1.5 bg-violet-200 hover:bg-violet-300"
             )}
           />
         ))}
       </div>
     </div>
+  );
+}
+
+/* ---------- badge de notificação mural (importado dinamicamente para evitar SSR issues) ---------- */
+function MuralInline({
+  observacoes,
+  ehAdmin,
+  autorNome,
+  autorId,
+  departamentoId,
+  onCriar,
+  onArquivar,
+  onRemover,
+}: {
+  observacoes: ObservacaoMural[];
+  ehAdmin: boolean;
+  autorNome: string;
+  autorId: string;
+  departamentoId: string | null;
+  onCriar?: Props["onCriarObservacao"];
+  onArquivar?: Props["onArquivarObservacao"];
+  onRemover?: Props["onRemoverObservacao"];
+}) {
+  // Import dinâmico para evitar que o componente pesado seja incluído no SSR bundle
+  const [Mural, setMural] = React.useState<React.ComponentType<
+    React.ComponentProps<typeof import("@/components/MuralObservacoes").MuralObservacoes>
+  > | null>(null);
+
+  React.useEffect(() => {
+    import("@/components/MuralObservacoes").then((m) => setMural(() => m.MuralObservacoes));
+  }, []);
+
+  if (!Mural || !onCriar || !onArquivar || !onRemover) return null;
+
+  return (
+    <Mural
+      observacoes={observacoes}
+      ehAdmin={ehAdmin}
+      autorNome={autorNome}
+      autorId={autorId}
+      departamentoId={departamentoId}
+      onCriar={onCriar}
+      onArquivar={onArquivar}
+      onRemover={onRemover}
+    />
   );
 }
 
@@ -190,6 +306,13 @@ export function CarrosselDashboard({
   proximosEnsaios,
   musicasMaisUsadas,
   ultimasAlteracoes,
+  observacoes = [],
+  onCriarObservacao,
+  onArquivarObservacao,
+  onRemoverObservacao,
+  autorNome = "",
+  autorId = "",
+  departamentoIdUsuario = null,
 }: Props) {
   const proximoEnsaio = proximosEnsaios[0];
   const musicaMaisUsada = musicasMaisUsadas[0];
@@ -201,6 +324,7 @@ export function CarrosselDashboard({
       label="Músicas cadastradas"
       value={totalLouvores}
       cor="violet"
+      isNumeric
     />,
     <StatCard
       key="ensaio"
@@ -234,6 +358,7 @@ export function CarrosselDashboard({
             label="Usuários ativos"
             value={totalUsuarios}
             cor="fuchsia"
+            isNumeric
           />,
         ]
       : []),
@@ -241,33 +366,55 @@ export function CarrosselDashboard({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* cabeçalho */}
-      <header>
-        <div className="flex items-center gap-2">
-          <Zap className="h-5 w-5 text-violet-500" />
-          <h1 className="bg-gradient-to-r from-violet-700 via-fuchsia-600 to-amber-500 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
-            Visão geral
-          </h1>
+      {/* ── HERO — cabeçalho com morph background ── */}
+      <header className="relative overflow-hidden rounded-2xl border border-violet-100/60 bg-white/60 px-6 py-5 shadow-sm backdrop-blur-sm">
+        <MorphBackground />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100">
+              <Zap className="h-4 w-4 text-violet-600" />
+            </div>
+            <h1 className="bg-gradient-to-r from-violet-700 via-fuchsia-600 to-amber-500 bg-clip-text text-2xl font-black tracking-tight text-transparent">
+              Visão geral
+            </h1>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Painel executivo · dados atualizados a cada carregamento
+          </p>
         </div>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          Indicadores em tempo real · dados atualizados a cada carregamento
-        </p>
       </header>
 
-      {/* GRID de stats em telas maiores */}
+      {/* ── GRID de stats em telas maiores ── */}
       <div className="hidden gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-4">
         {slides.map((slide, i) => (
-          <div key={i} className="h-full">{slide}</div>
+          <div key={i} className="h-full">
+            {slide}
+          </div>
         ))}
       </div>
 
-      {/* CARROSSEL automático no mobile */}
+      {/* ── CARROSSEL automático no mobile ── */}
       <div className="sm:hidden">
         <Carrossel slides={slides} />
       </div>
 
-      {/* listas */}
+      {/* ── MURAL DE OBSERVAÇÕES ── */}
+      <div className="rounded-2xl border border-violet-100 bg-white/70 p-4 shadow-sm">
+        <MuralInline
+          observacoes={observacoes}
+          ehAdmin={ehAdmin}
+          autorNome={autorNome}
+          autorId={autorId}
+          departamentoId={departamentoIdUsuario}
+          onCriar={onCriarObservacao}
+          onArquivar={onArquivarObservacao}
+          onRemover={onRemoverObservacao}
+        />
+      </div>
+
+      {/* ── LISTAS ── */}
       <div className="grid gap-4 lg:grid-cols-2">
+        {/* Músicas mais usadas */}
         <section className="flex flex-col gap-3 rounded-2xl border border-violet-100 bg-white/70 p-4 shadow-sm">
           <h2 className="flex items-center gap-2 text-sm font-semibold">
             <Star className="h-4 w-4 text-amber-500" />
@@ -297,6 +444,7 @@ export function CarrosselDashboard({
           )}
         </section>
 
+        {/* Últimas alterações */}
         <section className="flex flex-col gap-3 rounded-2xl border border-violet-100 bg-white/70 p-4 shadow-sm">
           <h2 className="flex items-center gap-2 text-sm font-semibold">
             <History className="h-4 w-4 text-violet-600" />
@@ -319,7 +467,7 @@ export function CarrosselDashboard({
         </section>
       </div>
 
-      {/* próximos ensaios */}
+      {/* ── PRÓXIMOS ENSAIOS ── */}
       <section className="flex flex-col gap-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold">
           <CalendarDays className="h-4 w-4 text-sky-600" />

@@ -65,6 +65,18 @@ export interface EnsaioGradeComDepartamento extends EnsaioGrade {
 }
 
 /**
+ * Classificação visual de uma música no repertório.
+ * Permite identificar rapidamente o contexto/finalidade de cada louvor.
+ */
+export type TipoLouvor =
+  | "ATUAL"         // 🟢 Música do repertório corrente
+  | "NOVA"          // 🟡 Música nova sendo ensaiada
+  | "ESPECIAL"      // 🔵 Música especial
+  | "CONGRESSO"     // 🟣 Preparada para congresso
+  | "CONFRATERNIZACAO" // 🟠 Confraternização
+  | "EVENTO";       // 🔴 Evento especial
+
+/**
  * Linha da planilha de louvores. Representa exatamente uma linha
  * editável na tabela `louvores_planilha`.
  */
@@ -95,6 +107,41 @@ export interface LouvorPlanilha {
   ordem_execucao: number;
   /** Timestamp (ISO) da última alteração de cadastro/edição dessa linha. */
   atualizado_em: string;
+  /** Classificação visual do louvor (opcional). */
+  tipo_louvor: TipoLouvor | null;
+  /** Nome do evento ao qual este louvor está vinculado (opcional). */
+  evento_nome: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Observações / Mural
+// ---------------------------------------------------------------------------
+
+export type PrioridadeObservacao = "NORMAL" | "ALTA" | "URGENTE";
+
+export type CategoriaObservacao =
+  | "AVISO"
+  | "COMUNICADO"
+  | "ENSAIO"
+  | "MUDANCA"
+  | "ESCALA"
+  | "URGENTE";
+
+export type StatusObservacao = "ATIVA" | "RESOLVIDA" | "ARQUIVADA";
+
+export interface ObservacaoMural {
+  id: string;
+  titulo: string;
+  descricao: string;
+  autor_nome: string;
+  autor_id: string;
+  /** ID do departamento alvo; null = visível para todos. */
+  departamento_id: string | null;
+  prioridade: PrioridadeObservacao;
+  categoria: CategoriaObservacao;
+  status: StatusObservacao;
+  criado_em: string;
+  atualizado_em: string;
 }
 
 /**
@@ -106,7 +153,7 @@ export type NovoLouvorInput = Pick<
   LouvorPlanilha,
   "departamento_id" | "nome_louvor" | "cantor_banda" | "tonalidade" | "link_youtube" | "ordem_execucao"
 > &
-  Partial<Pick<LouvorPlanilha, "youtube_titulo" | "youtube_thumbnail" | "youtube_canal">>;
+  Partial<Pick<LouvorPlanilha, "youtube_titulo" | "youtube_thumbnail" | "youtube_canal" | "tipo_louvor" | "evento_nome">>;
 
 /** Campos que podem ser editados inline na planilha. */
 export type LouvorEditavel = Pick<
@@ -119,6 +166,8 @@ export type LouvorEditavel = Pick<
   | "youtube_thumbnail"
   | "youtube_canal"
   | "ordem_execucao"
+  | "tipo_louvor"
+  | "evento_nome"
 >;
 
 /** Campos de cifra/observações, editados num painel expansível por linha. */

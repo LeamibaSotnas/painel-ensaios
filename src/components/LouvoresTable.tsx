@@ -47,6 +47,7 @@ import type {
   LouvorEditavel,
   LouvorPlanilha,
   NovoLouvorInput,
+  TipoLouvor,
 } from "@/types/database.types";
 import { extrairIdYoutube, type ResultadoBuscaYoutube } from "@/core/utils/youtube";
 import { temaDoDepartamento } from "@/core/utils/dept-tema";
@@ -86,6 +87,16 @@ export interface LouvoresTableProps {
 
 type DraftLouvor = LouvorEditavel;
 
+// ── Configuração visual dos tipos de louvor ──────────────────────────────────
+const TIPO_CONFIG: Record<TipoLouvor, { emoji: string; label: string; badge: string }> = {
+  ATUAL:            { emoji: "🟢", label: "Atual",            badge: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  NOVA:             { emoji: "🟡", label: "Nova",             badge: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+  ESPECIAL:         { emoji: "🔵", label: "Especial",         badge: "bg-sky-100 text-sky-700 border-sky-200" },
+  CONGRESSO:        { emoji: "🟣", label: "Congresso",        badge: "bg-violet-100 text-violet-700 border-violet-200" },
+  CONFRATERNIZACAO: { emoji: "🟠", label: "Confraternização", badge: "bg-orange-100 text-orange-700 border-orange-200" },
+  EVENTO:           { emoji: "🔴", label: "Evento especial",  badge: "bg-rose-100 text-rose-700 border-rose-200" },
+};
+
 const DRAFT_VAZIO: DraftLouvor = {
   nome_louvor: "",
   cantor_banda: "",
@@ -95,6 +106,8 @@ const DRAFT_VAZIO: DraftLouvor = {
   youtube_thumbnail: null,
   youtube_canal: null,
   ordem_execucao: 0,
+  tipo_louvor: null,
+  evento_nome: null,
 };
 
 function normalizarLinkYoutube(link: string | null): string | null {
@@ -286,6 +299,8 @@ export function LouvoresTable({
       youtube_thumbnail: linha.youtube_thumbnail,
       youtube_canal: linha.youtube_canal,
       ordem_execucao: linha.ordem_execucao,
+      tipo_louvor: linha.tipo_louvor,
+      evento_nome: linha.evento_nome,
     });
   }
 
@@ -307,6 +322,8 @@ export function LouvoresTable({
         youtube_thumbnail: draft.youtube_thumbnail,
         youtube_canal: draft.youtube_canal,
         ordem_execucao: draft.ordem_execucao,
+        tipo_louvor: draft.tipo_louvor ?? null,
+        evento_nome: draft.evento_nome?.trim() || null,
       });
       setEditingRowId(null);
     } catch {
@@ -579,6 +596,8 @@ export function LouvoresTable({
         youtube_thumbnail: newRowDraft.youtube_thumbnail,
         youtube_canal: newRowDraft.youtube_canal,
         ordem_execucao: newRowDraft.ordem_execucao,
+        tipo_louvor: newRowDraft.tipo_louvor ?? undefined,
+        evento_nome: newRowDraft.evento_nome?.trim() || undefined,
       });
       setIsAddingRow(false);
       setNewRowDraft({ ...DRAFT_VAZIO, ordem_execucao: data.length + 2 });
@@ -715,29 +734,75 @@ export function LouvoresTable({
           const emEdicao = editingRowId === linha.id;
           const expandido = expandedId === linha.id;
           if (!emEdicao) {
+            const tipo = linha.tipo_louvor ? TIPO_CONFIG[linha.tipo_louvor] : null;
             return (
-              <button
-                type="button"
-                onClick={() => alternarExpandido(linha)}
-                className="flex items-center gap-1.5 text-left font-medium hover:underline"
-              >
-                {expandido ? (
-                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <div className="flex flex-col gap-0.5">
+                <button
+                  type="button"
+                  onClick={() => alternarExpandido(linha)}
+                  className="flex items-center gap-1.5 text-left font-medium hover:underline"
+                >
+                  {expandido ? (
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  )}
+                  {linha.nome_louvor}
+                </button>
+                {/* badges de tipo e evento */}
+                {(tipo || linha.evento_nome) && (
+                  <div className="ml-5 flex flex-wrap gap-1">
+                    {tipo && (
+                      <span className={cn("inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0 text-[10px] font-semibold", tipo.badge)}>
+                        {tipo.emoji} {tipo.label}
+                      </span>
+                    )}
+                    {linha.evento_nome && (
+                      <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0 text-[10px] font-medium text-slate-600">
+                        🏷️ {linha.evento_nome}
+                      </span>
+                    )}
+                  </div>
                 )}
-                {linha.nome_louvor}
-              </button>
+              </div>
             );
           }
           return (
-            <Input
-              value={draft.nome_louvor}
-              onChange={(e) => setDraft((d) => ({ ...d, nome_louvor: e.target.value }))}
-              placeholder="Nome do louvor"
-              className="h-8"
-              autoFocus
-            />
+            <div className="flex flex-col gap-1">
+              <Input
+                value={draft.nome_louvor}
+                onChange={(e) => setDraft((d) => ({ ...d, nome_louvor: e.target.value }))}
+                placeholder="Nome do louvor"
+                className="h-8"
+                autoFocus
+              />
+              {/* seletor de tipo inline */}
+              <select
+                value={draft.tipo_louvor ?? ""}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    tipo_louvor: (e.target.value as TipoLouvor) || null,
+                  }))
+                }
+                className="h-7 rounded-md border border-slate-200 bg-white px-1.5 text-[11px] outline-none focus:border-violet-400"
+              >
+                <option value="">— sem classificação —</option>
+                {(Object.keys(TIPO_CONFIG) as TipoLouvor[]).map((t) => (
+                  <option key={t} value={t}>
+                    {TIPO_CONFIG[t].emoji} {TIPO_CONFIG[t].label}
+                  </option>
+                ))}
+              </select>
+              {draft.tipo_louvor && (
+                <Input
+                  value={draft.evento_nome ?? ""}
+                  onChange={(e) => setDraft((d) => ({ ...d, evento_nome: e.target.value || null }))}
+                  placeholder="Nome do evento (opcional)"
+                  className="h-7 text-xs"
+                />
+              )}
+            </div>
           );
         },
       },
@@ -1132,16 +1197,46 @@ export function LouvoresTable({
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Input
-                    autoFocus
-                    placeholder="Nome do louvor"
-                    className="h-8"
-                    list="lista-nomes-louvor"
-                    value={newRowDraft.nome_louvor}
-                    onChange={(e) =>
-                      setNewRowDraft((d) => ({ ...d, nome_louvor: e.target.value }))
-                    }
-                  />
+                  <div className="flex flex-col gap-1">
+                    <Input
+                      autoFocus
+                      placeholder="Nome do louvor"
+                      className="h-8"
+                      list="lista-nomes-louvor"
+                      value={newRowDraft.nome_louvor}
+                      onChange={(e) =>
+                        setNewRowDraft((d) => ({ ...d, nome_louvor: e.target.value }))
+                      }
+                    />
+                    <select
+                      value={newRowDraft.tipo_louvor ?? ""}
+                      onChange={(e) =>
+                        setNewRowDraft((d) => ({
+                          ...d,
+                          tipo_louvor: (e.target.value as TipoLouvor) || null,
+                          evento_nome: e.target.value ? d.evento_nome : null,
+                        }))
+                      }
+                      className="h-6 rounded border border-slate-200 bg-white px-1 text-[11px] outline-none focus:border-violet-400"
+                    >
+                      <option value="">— tipo —</option>
+                      {(Object.keys(TIPO_CONFIG) as TipoLouvor[]).map((t) => (
+                        <option key={t} value={t}>
+                          {TIPO_CONFIG[t].emoji} {TIPO_CONFIG[t].label}
+                        </option>
+                      ))}
+                    </select>
+                    {newRowDraft.tipo_louvor && (
+                      <Input
+                        placeholder="Evento (opcional)"
+                        className="h-6 text-[11px]"
+                        value={newRowDraft.evento_nome ?? ""}
+                        onChange={(e) =>
+                          setNewRowDraft((d) => ({ ...d, evento_nome: e.target.value || null }))
+                        }
+                      />
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Input
@@ -1299,6 +1394,33 @@ export function LouvoresTable({
                     <BotaoBuscarYoutube contexto="editing" />
                     <PainelBuscaYoutube contexto="editing" />
                   </div>
+                  {/* Classificação (edição mobile) */}
+                  <select
+                    value={draft.tipo_louvor ?? ""}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        tipo_louvor: (e.target.value as TipoLouvor) || null,
+                        evento_nome: e.target.value ? d.evento_nome : null,
+                      }))
+                    }
+                    className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm outline-none focus:border-violet-400"
+                  >
+                    <option value="">— Classificação (opcional) —</option>
+                    {(Object.keys(TIPO_CONFIG) as TipoLouvor[]).map((t) => (
+                      <option key={t} value={t}>
+                        {TIPO_CONFIG[t].emoji} {TIPO_CONFIG[t].label}
+                      </option>
+                    ))}
+                  </select>
+                  {draft.tipo_louvor && (
+                    <Input
+                      placeholder="Nome do evento (opcional)"
+                      className="h-9"
+                      value={draft.evento_nome ?? ""}
+                      onChange={(e) => setDraft((d) => ({ ...d, evento_nome: e.target.value || null }))}
+                    />
+                  )}
                   <div className="flex justify-end gap-2 pt-1">
                     <Button variant="outline" size="sm" disabled={salvando} onClick={cancelarEdicao}>
                       <X className="mr-1 h-4 w-4" /> Cancelar
@@ -1331,6 +1453,21 @@ export function LouvoresTable({
                         <span className="block text-xs text-muted-foreground">
                           {linha.cantor_banda || "—"}
                         </span>
+                        {/* badges de tipo e evento no card mobile */}
+                        {(linha.tipo_louvor || linha.evento_nome) && (
+                          <span className="mt-1 flex flex-wrap gap-1">
+                            {linha.tipo_louvor && (
+                              <span className={cn("inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] font-semibold", TIPO_CONFIG[linha.tipo_louvor].badge)}>
+                                {TIPO_CONFIG[linha.tipo_louvor].emoji} {TIPO_CONFIG[linha.tipo_louvor].label}
+                              </span>
+                            )}
+                            {linha.evento_nome && (
+                              <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0 text-[10px] font-medium text-slate-600">
+                                🏷️ {linha.evento_nome}
+                              </span>
+                            )}
+                          </span>
+                        )}
                       </span>
                     </button>
                     <button
@@ -1400,70 +1537,18 @@ export function LouvoresTable({
                           size="icon"
                           className="h-8 w-8 text-muted-foreground"
                           disabled={salvando}
-                          title="Marcar como executado hoje"
-                          onClick={() => marcarExecutado(linha.id)}
-                        >
-                          <Calendar className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
                           onClick={() => iniciarEdicao(linha)}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <SafeDeleteButton itemName={linha.nome_louvor} onConfirmDelete={async () => excluirLinha(linha.id)} variant="md" />
+                        <SafeDeleteButton
+                          itemName={linha.nome_louvor}
+                          onConfirmDelete={async () => excluirLinha(linha.id)}
+                          variant="md"
+                        />
                       </div>
                     )}
                   </div>
-
-                  {expandido && (
-                    <div
-                      className="mt-2.5 space-y-2 border-t pt-2.5"
-                      style={{ borderColor: tema.borda, background: tema.gradiente, borderRadius: "0.5rem", padding: "0.75rem", marginTop: "0.75rem" }}
-                    >
-                      <PlayerYoutube linha={linha} />
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs font-medium text-muted-foreground">Cifra</span>
-                        <textarea
-                          className="caderno-linhas min-h-20 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
-                          placeholder="Cole aqui a cifra ou um link para ela"
-                          value={detalhesDraft.cifra}
-                          disabled={!editavel}
-                          onChange={(e) => setDetalhesDraft((d) => ({ ...d, cifra: e.target.value }))}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          Observações
-                        </span>
-                        <textarea
-                          className="caderno-linhas min-h-20 rounded-lg border border-violet-200 bg-white/70 px-3 py-2 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 disabled:opacity-70"
-                          placeholder="Observações sobre o louvor"
-                          value={detalhesDraft.observacoes}
-                          disabled={!editavel}
-                          onChange={(e) =>
-                            setDetalhesDraft((d) => ({ ...d, observacoes: e.target.value }))
-                          }
-                        />
-                      </div>
-                      {editavel && (
-                        <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="outline" onClick={() => setExpandedId(null)}>
-                            Fechar
-                          </Button>
-                          <Button size="sm" disabled={savingDetalhes} onClick={() => salvarDetalhes(linha.id)}>
-                            {savingDetalhes ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              "Salvar"
-                            )}
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -1528,6 +1613,32 @@ export function LouvoresTable({
                 )}
                 <PainelBuscaYoutube contexto="novo" />
               </div>
+              <select
+                value={newRowDraft.tipo_louvor ?? ""}
+                onChange={(e) =>
+                  setNewRowDraft((d) => ({
+                    ...d,
+                    tipo_louvor: (e.target.value as TipoLouvor) || null,
+                    evento_nome: e.target.value ? d.evento_nome : null,
+                  }))
+                }
+                className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm outline-none focus:border-violet-400"
+              >
+                <option value="">-- Classificacao (opcional) --</option>
+                {(Object.keys(TIPO_CONFIG) as TipoLouvor[]).map((t) => (
+                  <option key={t} value={t}>
+                    {TIPO_CONFIG[t].emoji} {TIPO_CONFIG[t].label}
+                  </option>
+                ))}
+              </select>
+              {newRowDraft.tipo_louvor && (
+                <Input
+                  placeholder="Nome do evento (ex: Congresso de Jovens)"
+                  className="h-9"
+                  value={newRowDraft.evento_nome ?? ""}
+                  onChange={(e) => setNewRowDraft((d) => ({ ...d, evento_nome: e.target.value || null }))}
+                />
+              )}
               <div className="flex justify-end gap-2 pt-1">
                 <Button variant="outline" size="sm" disabled={isSavingNewRow} onClick={() => setIsAddingRow(false)}>
                   <X className="mr-1 h-4 w-4" /> Cancelar

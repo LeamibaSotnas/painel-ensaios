@@ -1,5 +1,6 @@
 import { getDb } from "@/core/db/client";
 import type {
+  CategoriaObservacao,
   Departamento,
   EnsaioEditavel,
   EnsaioGradeComDepartamento,
@@ -7,7 +8,10 @@ import type {
   LouvorEditavel,
   LouvorPlanilha,
   NovoLouvorInput,
+  ObservacaoMural,
+  PrioridadeObservacao,
   RegraUsuario,
+  StatusObservacao,
   Usuario,
   UsuarioComDepartamento,
   UsuarioRegistro,
@@ -267,7 +271,8 @@ export async function listarLouvoresPorDepartamento(
   const { rows } = await db<LouvorPlanilha>`
     SELECT id, codigo_sequencial, departamento_id, nome_louvor, cantor_banda, tonalidade,
            link_youtube, youtube_titulo, youtube_thumbnail, youtube_canal, cifra, observacoes,
-           favorito, ultima_execucao, vezes_executado, ordem_execucao, atualizado_em
+           favorito, ultima_execucao, vezes_executado, ordem_execucao, atualizado_em,
+           tipo_louvor, evento_nome
     FROM louvores_planilha
     WHERE departamento_id = ${departamentoId}
     ORDER BY ordem_execucao ASC
@@ -288,13 +293,15 @@ export async function criarLouvor(valores: NovoLouvorInput, codigoSequencial: st
   await db`
     INSERT INTO louvores_planilha (
       id, codigo_sequencial, departamento_id, nome_louvor, cantor_banda, tonalidade,
-      link_youtube, youtube_titulo, youtube_thumbnail, youtube_canal, ordem_execucao, atualizado_em
+      link_youtube, youtube_titulo, youtube_thumbnail, youtube_canal, ordem_execucao, atualizado_em,
+      tipo_louvor, evento_nome
     )
     VALUES (
       ${crypto.randomUUID()}, ${codigoSequencial}, ${valores.departamento_id}, ${valores.nome_louvor},
       ${valores.cantor_banda}, ${valores.tonalidade}, ${valores.link_youtube},
       ${valores.youtube_titulo ?? null}, ${valores.youtube_thumbnail ?? null}, ${valores.youtube_canal ?? null},
-      ${valores.ordem_execucao}, now()::text
+      ${valores.ordem_execucao}, now()::text,
+      ${valores.tipo_louvor ?? null}, ${valores.evento_nome ?? null}
     )
   `;
 }
@@ -311,6 +318,8 @@ export async function atualizarLouvor(id: string, valores: LouvorEditavel): Prom
       youtube_thumbnail = ${valores.youtube_thumbnail},
       youtube_canal = ${valores.youtube_canal},
       ordem_execucao = ${valores.ordem_execucao},
+      tipo_louvor = ${valores.tipo_louvor ?? null},
+      evento_nome = ${valores.evento_nome ?? null},
       atualizado_em = now()::text
     WHERE id = ${id}
   `;
@@ -451,4 +460,99 @@ export async function listarUltimasAlteracoes(
         LIMIT ${limite}
       `;
   return rows;
+}
+
+// ---------------------------------------------------------------------------
+// observacoes_mural
+// ---------------------------------------------------------------------------
+
+export async function listarObservacoes(departamentoId?: string): Promise<ObservacaoMural[]> {
+  const db = await getDb();
+  // Retorna observações globais (departamento_id IS NULL) OU do departamento específico
+  const { rows } = departamentoId
+    ? await db<ObservacaoMural>`
+        SELECT id, titulo, descricao, autor_nome, autor_id, departamento_id,
+               prioridade, categoria, status, criado_em, atualizado_em
+        FROM observacoes_mural
+        WHERE status != 'ARQUIVADA'
+          AND (departamento_id IS NULL OR departamento_id = ${departamentoId})
+        ORDER BY
+          CASE prioridade WHEN 'URGENTE' THEN 0 WHEN 'ALTA' THEN 1 ELSE 2 END ASC,
+          criado_em DESC
+        LIMIT 50
+      `
+    : await db<ObservacaoMural>`
+        SELECT id, titulo, descricao, autor_nome, autor_id, departamento_id,
+               prioridade, categoria, status, criado_em, atualizado_em
+        FROM observacoes_mural
+        WHERE status != 'ARQUIVADA'
+        ORDER BY
+          CASE prioridade WHEN 'URGENTE' THEN 0 WHEN 'ALTA' THEN 1 ELSE 2 END ASC,
+          criado_em DESC
+        LIMIT 50
+      `;
+  return rows;
+}
+
+export async function criarObservacao(valores: {
+  titulo: string;
+  descricao: string;
+  autorNome: string;
+  autorId: string;
+  departamentoId: string | null;
+  prioridade: PrioridadeObservacao;
+  categoria: CategoriaObservacao;
+}): Promise<ObservacaoMural> {
+  const db = await getDb();
+  const id = crypto.randomUUID();
+  await db`
+    INSERT INTO observacoes_mural
+      (id, titulo, descricao, autor_nome, autor_id, departamento_id, prioridade, categoria)
+    VALUES
+      (${id}, ${valores.titulo}, ${valores.descricao}, ${valores.autorNome}, ${valores.autorId},
+       ${valores.departamentoId}, ${valores.prioridade}, ${valores.categoria})
+  `;
+  const { rows } = await db<ObservacaoMural>`
+    SELECT * FROM observacoes_mural WHERE id = ${id}
+  `;
+  return rows[0];
+}
+
+export async function atualizarStatusObservacao(
+  id: string,
+  status: StatusObservacao
+): Promise<void> {
+  const db = await getDb();
+  await db`
+    UPDATE observacoes_mural
+    SET status = ${status}, atualizado_em = now()::text
+    WHERE id = ${id}
+  `;
+}
+
+export async function removerObservacao(id: string): Promise<void> {
+  const db = await getDb();
+  await db`DELETE FROM observacoes_mural WHERE id = ${id}`;
+}
+
+export async function contarObservacoesNovas(
+  departamentoId?: string,
+  desde?: string
+): Promise<number> {
+  const db = await getDb();
+  const dataCorte = desde ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { rows } = departamentoId
+    ? await db<{ total: number }>`
+        SELECT COUNT(*)::int as total
+        FROM observacoes_mural
+        WHERE status = 'ATIVA'
+          AND criado_em >= ${dataCorte}
+          AND (departamento_id IS NULL OR departamento_id = ${departamentoId})
+      `
+    : await db<{ total: number }>`
+        SELECT COUNT(*)::int as total
+        FROM observacoes_mural
+        WHERE status = 'ATIVA' AND criado_em >= ${dataCorte}
+      `;
+  return rows[0]?.total ?? 0;
 }

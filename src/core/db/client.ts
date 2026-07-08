@@ -98,6 +98,33 @@ async function aplicarMigracoesDeColunas() {
   await sql`ALTER TABLE ensaios_grade ADD COLUMN IF NOT EXISTS responsavel TEXT NOT NULL DEFAULT '';`;
   await sql`ALTER TABLE ensaios_grade ADD COLUMN IF NOT EXISTS observacoes TEXT NOT NULL DEFAULT '';`;
 
+  // Classificação visual e vínculo com evento (fase 2)
+  await sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS tipo_louvor TEXT;`;
+  await sql`ALTER TABLE louvores_planilha ADD COLUMN IF NOT EXISTS evento_nome TEXT;`;
+
+  // Mural de observações (fase 2)
+  await sql`
+    CREATE TABLE IF NOT EXISTS observacoes_mural (
+      id TEXT PRIMARY KEY,
+      titulo TEXT NOT NULL,
+      descricao TEXT NOT NULL DEFAULT '',
+      autor_nome TEXT NOT NULL,
+      autor_id TEXT NOT NULL,
+      departamento_id TEXT REFERENCES departamentos (id) ON DELETE CASCADE,
+      prioridade TEXT NOT NULL DEFAULT 'NORMAL'
+        CHECK (prioridade IN ('NORMAL', 'ALTA', 'URGENTE')),
+      categoria TEXT NOT NULL DEFAULT 'AVISO'
+        CHECK (categoria IN ('AVISO', 'COMUNICADO', 'ENSAIO', 'MUDANCA', 'ESCALA', 'URGENTE')),
+      status TEXT NOT NULL DEFAULT 'ATIVA'
+        CHECK (status IN ('ATIVA', 'RESOLVIDA', 'ARQUIVADA')),
+      criado_em TEXT NOT NULL DEFAULT now()::text,
+      atualizado_em TEXT NOT NULL DEFAULT now()::text
+    );
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_observacoes_dept ON observacoes_mural (departamento_id);`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_observacoes_status ON observacoes_mural (status);`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_observacoes_criado ON observacoes_mural (criado_em DESC);`;
+
   // Amplia a regra CHECK de `usuarios` para aceitar o novo papel ADMIN_PAINEL
   // (Administrador de Painel) em bancos já existentes — a constraint é recriada
   // de forma idempotente a cada inicialização.
