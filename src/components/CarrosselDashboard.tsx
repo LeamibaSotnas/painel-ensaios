@@ -124,34 +124,52 @@ type Cor = "violet" | "fuchsia" | "amber" | "sky" | "emerald";
 const PALETAS: Record<Cor, { card: string; glow: string; icon: string; accent: string }> = {
   violet: {
     card: "border-violet-200/70 bg-gradient-to-br from-violet-50 via-white to-slate-50",
-    glow: "shadow-violet-200/60",
+    glow: "shadow-violet-300/40",
     icon: "bg-violet-100 text-violet-600",
     accent: "from-violet-600 to-fuchsia-600",
   },
   fuchsia: {
     card: "border-fuchsia-200/70 bg-gradient-to-br from-fuchsia-50 via-white to-slate-50",
-    glow: "shadow-fuchsia-200/60",
+    glow: "shadow-fuchsia-300/40",
     icon: "bg-fuchsia-100 text-fuchsia-600",
     accent: "from-fuchsia-600 to-pink-500",
   },
   amber: {
     card: "border-amber-200/70 bg-gradient-to-br from-amber-50 via-white to-slate-50",
-    glow: "shadow-amber-200/60",
+    glow: "shadow-amber-300/40",
     icon: "bg-amber-100 text-amber-600",
     accent: "from-amber-600 to-orange-500",
   },
   sky: {
     card: "border-sky-200/70 bg-gradient-to-br from-sky-50 via-white to-slate-50",
-    glow: "shadow-sky-200/60",
+    glow: "shadow-sky-300/40",
     icon: "bg-sky-100 text-sky-600",
     accent: "from-sky-600 to-blue-500",
   },
   emerald: {
     card: "border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-white to-slate-50",
-    glow: "shadow-emerald-200/60",
+    glow: "shadow-emerald-300/40",
     icon: "bg-emerald-100 text-emerald-600",
     accent: "from-emerald-600 to-teal-500",
   },
+};
+
+/** RGB sem alpha — usado nas luzes de canto animadas */
+const CORNER_RGB: Record<Cor, string> = {
+  violet:  "139,92,246",
+  fuchsia: "217,70,239",
+  amber:   "245,158,11",
+  sky:     "14,165,233",
+  emerald: "16,185,129",
+};
+
+/** Cor do anel pulsante do ícone */
+const RING_COLOR: Record<Cor, string> = {
+  violet:  "rgba(139,92,246,0.50)",
+  fuchsia: "rgba(217,70,239,0.50)",
+  amber:   "rgba(245,158,11,0.50)",
+  sky:     "rgba(14,165,233,0.50)",
+  emerald: "rgba(16,185,129,0.50)",
 };
 
 function StatCard({
@@ -161,6 +179,7 @@ function StatCard({
   sub,
   cor,
   isNumeric = false,
+  index = 0,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -168,30 +187,64 @@ function StatCard({
   sub?: string;
   cor: Cor;
   isNumeric?: boolean;
+  index?: number;
 }) {
-  const p = PALETAS[cor];
+  const p   = PALETAS[cor];
+  const rgb = CORNER_RGB[cor];
+  const ring = RING_COLOR[cor];
+
   return (
     <div
       className={cn(
         "group relative flex h-full flex-col gap-4 overflow-hidden rounded-2xl border p-5",
-        "shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
+        "shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl",
         p.card,
         p.glow
       )}
+      style={{ animation: `card-enter 0.45s ease-out ${index * 90}ms backwards` }}
     >
-      {/* brilho de canto sutil */}
-      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/60 blur-2xl" />
+      {/* ── Luz de canto superior direito (animada) */}
+      <div
+        className="pointer-events-none absolute -right-5 -top-5 h-28 w-28 rounded-full blur-2xl"
+        style={{
+          background: `radial-gradient(circle, rgba(${rgb},0.50), transparent 68%)`,
+          animation: `corner-shimmer 3.2s ease-in-out ${index * 0.55}s infinite`,
+        }}
+      />
+      {/* ── Luz de canto inferior esquerdo */}
+      <div
+        className="pointer-events-none absolute -bottom-5 -left-5 h-20 w-20 rounded-full blur-xl"
+        style={{
+          background: `radial-gradient(circle, rgba(${rgb},0.28), transparent 68%)`,
+          animation: `corner-shimmer 3.2s ease-in-out ${1.6 + index * 0.55}s infinite`,
+        }}
+      />
+      {/* ── Sweep de luz no hover */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+        style={{
+          background: `linear-gradient(108deg, transparent 30%, rgba(${rgb},0.09) 50%, transparent 70%)`,
+        }}
+      />
 
+      {/* Ícone com anel pulsante */}
       <div
         className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110",
+          "relative flex h-11 w-11 items-center justify-center rounded-xl",
+          "transition-all duration-300 group-hover:scale-110",
           p.icon
         )}
+        style={
+          {
+            "--ring-color": ring,
+            animation: `icon-pulse-ring 2.8s ease-in-out ${index * 0.7}s infinite`,
+          } as React.CSSProperties
+        }
       >
         {icon}
       </div>
 
-      <div className="flex flex-col">
+      <div className="relative flex flex-col">
         <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
           {label}
         </span>
@@ -244,7 +297,9 @@ function Carrossel({ slides }: { slides: React.ReactNode[] }) {
             onClick={() => setAtivo(i)}
             className={cn(
               "h-1.5 rounded-full transition-all duration-300",
-              i === ativo ? "w-5 bg-violet-500" : "w-1.5 bg-violet-200 hover:bg-violet-300"
+              i === ativo
+                ? "w-6 bg-gradient-to-r from-sky-400 to-cyan-400 shadow-sm shadow-sky-400/60"
+                : "w-1.5 bg-sky-200/30 hover:bg-sky-200/60"
             )}
           />
         ))}
@@ -320,6 +375,7 @@ export function CarrosselDashboard({
   const slides: React.ReactNode[] = [
     <StatCard
       key="louvores"
+      index={0}
       icon={<Music2 className="h-5 w-5" />}
       label="Músicas cadastradas"
       value={totalLouvores}
@@ -328,6 +384,7 @@ export function CarrosselDashboard({
     />,
     <StatCard
       key="ensaio"
+      index={1}
       icon={<CalendarDays className="h-5 w-5" />}
       label="Próximo ensaio"
       value={proximoEnsaio ? formatarData(proximoEnsaio.data) : "—"}
@@ -340,6 +397,7 @@ export function CarrosselDashboard({
     />,
     <StatCard
       key="mais-usada"
+      index={2}
       icon={<TrendingUp className="h-5 w-5" />}
       label="Mais executada"
       value={musicaMaisUsada ? musicaMaisUsada.nome_louvor : "—"}
@@ -354,6 +412,7 @@ export function CarrosselDashboard({
       ? [
           <StatCard
             key="usuarios"
+            index={3}
             icon={<Users className="h-5 w-5" />}
             label="Usuários ativos"
             value={totalUsuarios}
@@ -367,18 +426,19 @@ export function CarrosselDashboard({
   return (
     <div className="flex flex-col gap-6">
       {/* ── HERO — cabeçalho com morph background ── */}
-      <header className="relative overflow-hidden rounded-2xl border border-violet-100/60 bg-white/60 px-6 py-5 shadow-sm backdrop-blur-sm">
+      <header className="relative overflow-hidden rounded-2xl border border-white/35 bg-white/22 px-6 py-5 shadow-md backdrop-blur-xl"
+              style={{ boxShadow: "0 4px 30px -6px rgba(99,102,241,0.20), inset 0 1px 0 rgba(255,255,255,0.35)" }}>
         <MorphBackground />
         <div className="relative z-10">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100">
-              <Zap className="h-4 w-4 text-violet-600" />
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 shadow-md shadow-violet-500/35">
+              <Zap className="h-4 w-4 text-white" />
             </div>
             <h1 className="bg-gradient-to-r from-violet-700 via-fuchsia-600 to-amber-500 bg-clip-text text-2xl font-black tracking-tight text-transparent">
               Visão geral
             </h1>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1.5 text-sm text-muted-foreground">
             Painel executivo · dados atualizados a cada carregamento
           </p>
         </div>
@@ -399,7 +459,8 @@ export function CarrosselDashboard({
       </div>
 
       {/* ── MURAL DE OBSERVAÇÕES ── */}
-      <div className="rounded-2xl border border-violet-100 bg-white/70 p-4 shadow-sm">
+      <div className="rounded-2xl border border-violet-200/50 bg-white/60 p-4 shadow-md backdrop-blur-sm"
+           style={{ boxShadow: "0 4px 20px -6px rgba(139,92,246,0.15), inset 0 1px 0 rgba(255,255,255,0.6)" }}>
         <MuralInline
           observacoes={observacoes}
           ehAdmin={ehAdmin}
@@ -415,7 +476,8 @@ export function CarrosselDashboard({
       {/* ── LISTAS ── */}
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Músicas mais usadas */}
-        <section className="flex flex-col gap-3 rounded-2xl border border-violet-100 bg-white/70 p-4 shadow-sm">
+        <section className="group flex flex-col gap-3 rounded-2xl border border-amber-100/70 bg-white/65 p-4 shadow-md backdrop-blur-sm transition-all duration-300 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-100/40"
+                 style={{ boxShadow: "0 4px 20px -6px rgba(245,158,11,0.12), inset 0 1px 0 rgba(255,255,255,0.55)" }}>
           <h2 className="flex items-center gap-2 text-sm font-semibold">
             <Star className="h-4 w-4 text-amber-500" />
             Músicas mais usadas
@@ -445,7 +507,8 @@ export function CarrosselDashboard({
         </section>
 
         {/* Últimas alterações */}
-        <section className="flex flex-col gap-3 rounded-2xl border border-violet-100 bg-white/70 p-4 shadow-sm">
+        <section className="group flex flex-col gap-3 rounded-2xl border border-violet-100/70 bg-white/65 p-4 shadow-md backdrop-blur-sm transition-all duration-300 hover:border-violet-200 hover:shadow-lg hover:shadow-violet-100/40"
+                 style={{ boxShadow: "0 4px 20px -6px rgba(139,92,246,0.12), inset 0 1px 0 rgba(255,255,255,0.55)" }}>
           <h2 className="flex items-center gap-2 text-sm font-semibold">
             <History className="h-4 w-4 text-violet-600" />
             Últimas alterações
@@ -482,7 +545,7 @@ export function CarrosselDashboard({
             {proximosEnsaios.map((e) => (
               <li
                 key={e.id}
-                className="flex flex-col gap-2 rounded-xl border border-violet-100 bg-white/70 px-4 py-3 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 rounded-xl border border-sky-100/60 bg-white/60 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md hover:shadow-sky-100/40 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex flex-wrap items-center gap-3 text-sm">
                   <CalendarDays className="h-4 w-4 shrink-0 text-sky-500" />

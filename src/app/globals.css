@@ -154,6 +154,40 @@
   to { transform: scale(1); opacity: 0; }
 }
 
+/* ─────────────────────────────────────────────────────────────
+   StatCard — entrada suave + luzes de canto + ícone pulsante
+   ───────────────────────────────────────────────────────────── */
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+@keyframes corner-shimmer {
+  0%,100% { opacity: 0.35; transform: scale(0.85); }
+  50%     { opacity: 0.75; transform: scale(1.15); }
+}
+
+@keyframes icon-pulse-ring {
+  0%   { box-shadow: 0 0 0 0   var(--ring-color, rgba(139,92,246,0.55)); }
+  60%  { box-shadow: 0 0 0 9px var(--ring-color, rgba(139,92,246,0));    }
+  100% { box-shadow: 0 0 0 0   var(--ring-color, rgba(139,92,246,0));    }
+}
+
+@keyframes light-sweep {
+  0%   { transform: translateX(-120%) skewX(-20deg); opacity: 0; }
+  20%  { opacity: 0.6; }
+  80%  { opacity: 0.6; }
+  100% { transform: translateX(220%)  skewX(-20deg); opacity: 0; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MorphBackground — blob central pulsante
+   ───────────────────────────────────────────────────────────── */
+@keyframes morph-pulse-center {
+  0%,100% { transform: scale(1);    opacity: 0.6; }
+  50%     { transform: scale(1.12); opacity: 1;   }
+}
+
 @layer utilities {
   /* Estilo "caderno inteligente": linhas horizontais suaves, como um planner
      ou caderno executivo organizado — usado em áreas de anotação livre

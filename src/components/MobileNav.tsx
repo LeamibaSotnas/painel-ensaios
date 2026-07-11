@@ -49,8 +49,12 @@ export function MobileNav({ usuario }: { usuario: Usuario }) {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-violet-100 bg-white/90 shadow-[0_-4px_20px_-8px_rgba(124,58,237,0.25)] backdrop-blur-xl md:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-white/10 backdrop-blur-2xl md:hidden"
+      style={{
+        background: "rgba(0,18,55,0.90)",
+        boxShadow: "0 -4px 32px -4px rgba(0,80,200,0.30), 0 -1px 0 rgba(255,255,255,0.08)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
     >
       {itens.map(({ href, label, icon: Icon }) => {
         const ativo = pathname === href || pathname.startsWith(`${href}/`);
@@ -59,20 +63,32 @@ export function MobileNav({ usuario }: { usuario: Usuario }) {
             key={href}
             href={href}
             className={cn(
-              "relative flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] transition-colors",
-              ativo ? "font-medium text-violet-600" : "text-muted-foreground"
+              "relative flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium",
+              "transition-all duration-200 active:scale-90",
+              ativo ? "text-sky-300" : "text-sky-100/45 hover:text-sky-100/70"
             )}
           >
+            {/* Linha indicadora superior com glow */}
             {ativo && (
-              <span className="absolute top-0 h-0.5 w-8 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500" />
+              <span
+                className="absolute top-0 h-[2px] w-10 rounded-full bg-gradient-to-r from-sky-400 to-cyan-400"
+                style={{ boxShadow: "0 0 8px rgba(56,189,248,0.85)" }}
+              />
             )}
+
+            {/* Ícone em pílula com glow quando ativo */}
             <span
               className={cn(
-                "flex h-7 w-9 items-center justify-center rounded-full transition-colors",
-                ativo && "bg-gradient-to-br from-violet-100 to-fuchsia-100"
+                "flex h-8 w-11 items-center justify-center rounded-2xl transition-all duration-200",
+                ativo
+                  ? "bg-gradient-to-br from-sky-500/25 to-cyan-500/15 shadow-md shadow-sky-500/25"
+                  : "hover:bg-white/8"
               )}
             >
-              <Icon className={cn("h-5 w-5", ativo && "text-violet-600")} />
+              <Icon
+                className={cn("h-5 w-5 transition-all duration-200", ativo && "scale-110")}
+                style={ativo ? { filter: "drop-shadow(0 0 6px rgba(56,189,248,0.80))" } : undefined}
+              />
             </span>
             {label}
           </Link>
