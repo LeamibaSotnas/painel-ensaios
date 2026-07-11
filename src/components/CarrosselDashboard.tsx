@@ -60,6 +60,12 @@ interface Props {
   }) => Promise<void>;
   onArquivarObservacao?: (id: string) => Promise<void>;
   onRemoverObservacao?: (id: string) => Promise<void>;
+  onEditarObservacao?: (id: string, dados: {
+    titulo: string;
+    descricao: string;
+    prioridade: PrioridadeObservacao;
+    categoria: CategoriaObservacao;
+  }) => Promise<void>;
   autorNome?: string;
   autorId?: string;
   departamentoIdUsuario?: string | null;
@@ -318,6 +324,7 @@ function MuralInline({
   onCriar,
   onArquivar,
   onRemover,
+  onEditar,
 }: {
   observacoes: ObservacaoMural[];
   ehAdmin: boolean;
@@ -327,6 +334,7 @@ function MuralInline({
   onCriar?: Props["onCriarObservacao"];
   onArquivar?: Props["onArquivarObservacao"];
   onRemover?: Props["onRemoverObservacao"];
+  onEditar?: Props["onEditarObservacao"];
 }) {
   // Import dinâmico para evitar que o componente pesado seja incluído no SSR bundle
   const [Mural, setMural] = React.useState<React.ComponentType<
@@ -349,6 +357,7 @@ function MuralInline({
       onCriar={onCriar}
       onArquivar={onArquivar}
       onRemover={onRemover}
+      onEditar={onEditar}
     />
   );
 }
@@ -365,6 +374,7 @@ export function CarrosselDashboard({
   onCriarObservacao,
   onArquivarObservacao,
   onRemoverObservacao,
+  onEditarObservacao,
   autorNome = "",
   autorId = "",
   departamentoIdUsuario = null,
@@ -470,6 +480,7 @@ export function CarrosselDashboard({
           onCriar={onCriarObservacao}
           onArquivar={onArquivarObservacao}
           onRemover={onRemoverObservacao}
+          onEditar={onEditarObservacao}
         />
       </div>
 

@@ -35,6 +35,13 @@ export function NotificacaoBell() {
     return () => clearInterval(id);
   }, [buscar]);
 
+  // Quando qualquer painel salva uma observação, re-faz poll imediatamente
+  useEffect(() => {
+    const handler = () => buscar();
+    window.addEventListener("observacao-nova", handler);
+    return () => window.removeEventListener("observacao-nova", handler);
+  }, [buscar]);
+
   function marcarVisto() {
     localStorage.setItem(LS_KEY, new Date().toISOString());
     setTotal(0);

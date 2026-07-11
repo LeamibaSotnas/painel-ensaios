@@ -535,6 +535,27 @@ export async function removerObservacao(id: string): Promise<void> {
   await db`DELETE FROM observacoes_mural WHERE id = ${id}`;
 }
 
+export async function atualizarObservacao(
+  id: string,
+  valores: {
+    titulo: string;
+    descricao: string;
+    prioridade: PrioridadeObservacao;
+    categoria: CategoriaObservacao;
+  }
+): Promise<void> {
+  const db = await getDb();
+  await db`
+    UPDATE observacoes_mural
+    SET titulo       = ${valores.titulo},
+        descricao    = ${valores.descricao},
+        prioridade   = ${valores.prioridade},
+        categoria    = ${valores.categoria},
+        atualizado_em = now()::text
+    WHERE id = ${id}
+  `;
+}
+
 export async function contarObservacoesNovas(
   departamentoId?: string,
   desde?: string

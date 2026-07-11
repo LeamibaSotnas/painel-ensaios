@@ -11,9 +11,11 @@ import {
   ChevronUp,
   Circle,
   Flame,
+  Loader2,
   Megaphone,
   MessageSquarePlus,
   Music2,
+  Pencil,
   RefreshCw,
   Shield,
   Tag,
@@ -152,11 +154,21 @@ interface Props {
   }) => Promise<void>;
   onArquivar: (id: string) => Promise<void>;
   onRemover: (id: string) => Promise<void>;
+  onEditar?: (id: string, dados: {
+    titulo: string;
+    descricao: string;
+    prioridade: PrioridadeObservacao;
+    categoria: CategoriaObservacao;
+  }) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
 // Cartão de observação
 // ---------------------------------------------------------------------------
+
+const CATEGORIAS: CategoriaObservacao[] = [
+  "AVISO", "COMUNICADO", "ENSAIO", "MUDANCA", "ESCALA", "URGENTE",
+];
 
 function CartaoObservacao({
   obs,
@@ -165,6 +177,7 @@ function CartaoObservacao({
   onLer,
   onArquivar,
   onRemover,
+  onEditar,
 }: {
   obs: ObservacaoMural;
   lida: boolean;
@@ -172,9 +185,21 @@ function CartaoObservacao({
   onLer: (id: string) => void;
   onArquivar: (id: string) => Promise<void>;
   onRemover: (id: string) => Promise<void>;
+  onEditar?: (id: string, dados: {
+    titulo: string;
+    descricao: string;
+    prioridade: PrioridadeObservacao;
+    categoria: CategoriaObservacao;
+  }) => Promise<void>;
 }) {
   const [expandida, setExpandida] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [editando, setEditando] = React.useState(false);
+  const [editTitulo, setEditTitulo] = React.useState(obs.titulo);
+  const [editDescricao, setEditDescricao] = React.useState(obs.descricao);
+  const [editPrioridade, setEditPrioridade] = React.useState<PrioridadeObservacao>(obs.prioridade);
+  const [editCategoria, setEditCategoria] = React.useState<CategoriaObservacao>(obs.categoria);
+  const [editErro, setEditErro] = React.useState<string | null>(null);
   const cat = CATEGORIA_CONFIG[obs.categoria];
   const pri = PRIORIDADE_CONFIG[obs.prioridade];
 
@@ -183,13 +208,41 @@ function CartaoObservacao({
     if (!lida) onLer(obs.id);
   }
 
+  function iniciarEdicao() {
+    setEditTitulo(obs.titulo);
+    setEditDescricao(obs.descricao);
+    setEditPrioridade(obs.prioridade);
+    setEditCategoria(obs.categoria);
+    setEditErro(null);
+    setEditando(true);
+  }
+
+  async function salvarEdicao() {
+    if (!onEditar || !editTitulo.trim()) return;
+    setLoading(true);
+    setEditErro(null);
+    try {
+      await onEditar(obs.id, {
+        titulo: editTitulo.trim(),
+        descricao: editDescricao.trim(),
+        prioridade: editPrioridade,
+        categoria: editCategoria,
+      });
+      setEditando(false);
+    } catch (e) {
+      setEditErro(e instanceof Error ? e.message : "Não foi possível salvar.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleArquivar() {
     setLoading(true);
     try { await onArquivar(obs.id); } finally { setLoading(false); }
   }
 
   async function handleRemover() {
-    if (!confirm("Remover esta observação permanentemente?")) return;
+    if (!confirm("Remover esta observação permanentemente? Esta ação não pode ser desfeita.")) return;
     setLoading(true);
     try { await onRemover(obs.id); } finally { setLoading(false); }
   }
@@ -272,34 +325,125 @@ function CartaoObservacao({
 
       {/* Corpo expandido */}
       {expandida && (
-        <div className="border-t border-slate-100 px-5 pb-3 pt-2">
-          {obs.descricao && (
-            <p className="whitespace-pre-wrap text-sm text-slate-700">{obs.descricao}</p>
-          )}
+        <div className="border-t border-slate-100 px-5 pb-4 pt-3">
 
-          {ehAdmin && (
-            <div className="mt-3 flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleArquivar}
-                disabled={loading}
-                className="h-7 gap-1 px-2 text-xs text-slate-500 hover:text-amber-600"
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Arquivar
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRemover}
-                disabled={loading}
-                className="h-7 gap-1 px-2 text-xs text-slate-500 hover:text-rose-600"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Remover
-              </Button>
+          {/* ── Modo edição inline ─────────────────────────────────────── */}
+          {editando ? (
+            <div className="flex flex-col gap-3">
+              <input
+                value={editTitulo}
+                onChange={(e) => setEditTitulo(e.target.value)}
+                placeholder="Título *"
+                maxLength={120}
+                className="rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+              />
+              <textarea
+                value={editDescricao}
+                onChange={(e) => setEditDescricao(e.target.value)}
+                placeholder="Descrição..."
+                rows={4}
+                maxLength={800}
+                className="resize-none rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+              />
+              <div className="flex flex-wrap gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-medium text-muted-foreground">Categoria</label>
+                  <select
+                    value={editCategoria}
+                    onChange={(e) => setEditCategoria(e.target.value as CategoriaObservacao)}
+                    className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-violet-400"
+                  >
+                    {CATEGORIAS.map((c) => (
+                      <option key={c} value={c}>{CATEGORIA_CONFIG[c].label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-medium text-muted-foreground">Prioridade</label>
+                  <select
+                    value={editPrioridade}
+                    onChange={(e) => setEditPrioridade(e.target.value as PrioridadeObservacao)}
+                    className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-violet-400"
+                  >
+                    <option value="NORMAL">Normal</option>
+                    <option value="ALTA">Alta</option>
+                    <option value="URGENTE">Urgente</option>
+                  </select>
+                </div>
+              </div>
+              {editErro && (
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                  {editErro}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  disabled={loading || !editTitulo.trim()}
+                  onClick={salvarEdicao}
+                  className="h-8 gap-1 text-xs"
+                >
+                  {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                  Salvar alterações
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditando(false)}
+                  disabled={loading}
+                  className="h-8 gap-1 text-xs"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Cancelar
+                </Button>
+              </div>
             </div>
+          ) : (
+            <>
+              {obs.descricao && (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                  {obs.descricao}
+                </p>
+              )}
+
+              {/* ── Ações do admin ─────────────────────────────────────── */}
+              {ehAdmin && (
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                  {onEditar && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={iniciarEdicao}
+                      disabled={loading}
+                      className="h-7 gap-1 px-2 text-xs text-slate-500 hover:border-violet-400 hover:text-violet-600"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      Editar
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleArquivar}
+                    disabled={loading}
+                    className="h-7 gap-1 px-2 text-xs text-slate-500 hover:border-amber-400 hover:text-amber-600"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Arquivar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRemover}
+                    disabled={loading}
+                    className="h-7 gap-1 px-2 text-xs text-slate-500 hover:border-rose-400 hover:text-rose-600"
+                  >
+                    {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    Excluir
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -310,10 +454,6 @@ function CartaoObservacao({
 // ---------------------------------------------------------------------------
 // Formulário de nova observação
 // ---------------------------------------------------------------------------
-
-const CATEGORIAS: CategoriaObservacao[] = [
-  "AVISO", "COMUNICADO", "ENSAIO", "MUDANCA", "ESCALA", "URGENTE",
-];
 
 function FormNovaObservacao({
   onSalvar,
@@ -435,6 +575,7 @@ export function MuralObservacoes({
   onCriar,
   onArquivar,
   onRemover,
+  onEditar,
 }: Props) {
   const router = useRouter();
   const [lidas, setLidas] = React.useState<Set<string>>(new Set());
@@ -484,6 +625,21 @@ export function MuralObservacoes({
   async function handleRemover(id: string) {
     await onRemover(id);
     router.refresh();
+  }
+
+  async function handleEditar(
+    id: string,
+    dados: {
+      titulo: string;
+      descricao: string;
+      prioridade: PrioridadeObservacao;
+      categoria: CategoriaObservacao;
+    }
+  ) {
+    if (onEditar) {
+      await onEditar(id, dados);
+      router.refresh();
+    }
   }
 
   return (
@@ -601,6 +757,7 @@ export function MuralObservacoes({
                       onLer={handleLer}
                       onArquivar={handleArquivar}
                       onRemover={handleRemover}
+                      onEditar={onEditar ? handleEditar : undefined}
                     />
                   </li>
                 ))}

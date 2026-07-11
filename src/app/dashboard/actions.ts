@@ -17,6 +17,7 @@
 import { revalidatePath } from "next/cache";
 
 import {
+  atualizarObservacao,
   atualizarStatusObservacao,
   criarObservacao,
   removerObservacao,
@@ -57,5 +58,19 @@ export async function arquivarObservacaoAction(id: string): Promise<void> {
 /** Remove permanentemente uma observação. */
 export async function removerObservacaoAction(id: string): Promise<void> {
   await removerObservacao(id);
+  revalidatePath("/dashboard");
+}
+
+/** Edita o conteúdo de uma observação existente. */
+export async function editarObservacaoAction(
+  id: string,
+  dados: {
+    titulo: string;
+    descricao: string;
+    prioridade: PrioridadeObservacao;
+    categoria: CategoriaObservacao;
+  }
+): Promise<void> {
+  await atualizarObservacao(id, dados);
   revalidatePath("/dashboard");
 }

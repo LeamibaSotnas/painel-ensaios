@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import {
   CalendarDays,
   Check,
@@ -283,6 +284,8 @@ export function EnsaioGrid({
       setObsTitulo("");
       setObsTexto("");
       setObsPrioridade("NORMAL");
+      // Sinaliza ao sino de notificações para re-fazer poll imediatamente
+      window.dispatchEvent(new CustomEvent("observacao-nova"));
     } catch (e) {
       setObsErro(e instanceof Error ? e.message : "Não foi possível enviar a observação.");
     } finally {
@@ -360,18 +363,21 @@ export function EnsaioGrid({
 
   return (
     <>
-    {/* ── Modal de observação broadcast ────────────────────────────────────── */}
-    {isObsOpen && (
+    {/* ── Modal de observação broadcast (portal — escapa do backdrop-blur da card) */}
+    {isObsOpen && createPortal(
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}
+        className="fixed inset-0 z-[9999] flex items-end justify-center p-0 sm:items-center sm:p-4"
+        style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(8px)" }}
+        onClick={() => setIsObsOpen(false)}
       >
         <div
-          className="relative w-full max-w-lg rounded-2xl border border-white/20 p-6 shadow-2xl"
+          className="relative w-full max-w-lg rounded-t-3xl border border-white/20 p-6 shadow-2xl sm:rounded-2xl"
           style={{
             background:
-              "linear-gradient(145deg, rgba(12,8,35,0.97) 0%, rgba(25,15,70,0.97) 55%, rgba(40,10,55,0.97) 100%)",
+              "linear-gradient(145deg, rgba(12,8,35,0.98) 0%, rgba(25,15,70,0.98) 55%, rgba(40,10,55,0.98) 100%)",
+            animation: "card-enter 0.28s cubic-bezier(0.34,1.2,0.64,1) both",
           }}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Header do modal */}
           <div className="mb-5 flex items-center gap-3">
@@ -490,7 +496,8 @@ export function EnsaioGrid({
             )}
           </button>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
 
     <div className="flex flex-col gap-3">

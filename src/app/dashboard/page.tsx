@@ -11,6 +11,7 @@ import {
 import {
   arquivarObservacaoAction,
   criarObservacaoAction,
+  editarObservacaoAction,
   removerObservacaoAction,
 } from "./actions";
 
@@ -53,6 +54,7 @@ export default async function VisaoGeralPage() {
       onCriarObservacao={criarObservacaoAction.bind(null, nome, uid)}
       onArquivarObservacao={arquivarObservacaoAction}
       onRemoverObservacao={removerObservacaoAction}
+      onEditarObservacao={editarObservacaoAction}
       autorNome={nome}
       autorId={uid}
       departamentoIdUsuario={usuarioAtual?.departamento_id ?? null}
