@@ -5,6 +5,7 @@ import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
 import {
   atualizarEnsaio,
   criarEnsaio,
+  criarObservacao,
   listarDepartamentos,
   listarTodosEnsaios,
   removerEnsaio,
@@ -74,6 +75,34 @@ export default async function CronogramaPage() {
     return {};
   }
 
+  /** Broadcast global — departamento_id = null, visível a todos os departamentos. */
+  async function handleCriarObservacaoGlobal(dados: {
+    titulo: string;
+    descricao: string;
+    prioridade: string;
+  }): Promise<{ erro?: string }> {
+    "use server";
+    if (!podeEditarCronograma) {
+      return { erro: "Você não tem permissão para inserir observações." };
+    }
+    try {
+      await criarObservacao({
+        titulo: dados.titulo,
+        descricao: dados.descricao,
+        autorNome: usuarioAtual?.nome ?? "Líder",
+        autorId: usuarioAtual?.id ?? "",
+        departamentoId: null, // null = broadcast para todos os departamentos
+        prioridade: dados.prioridade as "NORMAL" | "ALTA" | "URGENTE",
+        categoria: "COMUNICADO",
+      });
+    } catch (erro) {
+      return { erro: erro instanceof Error ? erro.message : "Falha ao salvar a observação." };
+    }
+    revalidatePath("/dashboard");
+    revalidatePath(CAMINHO_CRONOGRAMA);
+    return {};
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <header>
@@ -94,6 +123,7 @@ export default async function CronogramaPage() {
         onAtualizarEnsaio={handleAtualizarEnsaio}
         onAdicionarEnsaio={handleAdicionarEnsaio}
         onRemoverEnsaio={handleRemoverEnsaio}
+        onCriarObservacao={podeEditarCronograma ? handleCriarObservacaoGlobal : undefined}
       />
     </div>
   );

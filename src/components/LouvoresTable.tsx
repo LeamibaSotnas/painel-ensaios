@@ -500,10 +500,10 @@ export function LouvoresTable({
               <X className="h-4 w-4" />
             </button>
           </div>
-          {/* Corpo com fundo branco e tint suave do departamento */}
+          {/* Corpo — fundo branco sólido para garantir legibilidade dos resultados */}
           <div
             className="overflow-y-auto p-3 md:p-4"
-            style={{ background: `linear-gradient(to bottom, ${tema.gradiente.replace('145deg', '180deg')}, #fff 60%)` }}
+            style={{ background: "linear-gradient(180deg,rgba(248,248,255,1) 0%,rgba(255,255,255,1) 100%)" }}
           >
           {painelBusca.resultados === null ? (
           <div className="flex flex-col gap-2 px-1 py-3">
@@ -530,20 +530,27 @@ export function LouvoresTable({
                 key={resultado.id}
                 type="button"
                 onClick={() => selecionarVideoBusca(contexto, resultado)}
-                className="flex items-center gap-3 rounded-xl p-2 text-left transition-colors"
-                style={{ ["--hover-bg" as string]: tema.gradiente }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = tema.gradiente)}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "")}
+                className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white p-2 text-left shadow-sm transition-all duration-200 hover:border-transparent hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99]"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = tema.gradiente;
+                  e.currentTarget.style.borderColor = "transparent";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "";
+                  e.currentTarget.style.borderColor = "";
+                }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={resultado.thumbnail}
                   alt=""
-                  className="h-16 w-28 shrink-0 rounded-lg object-cover md:h-20 md:w-36"
+                  className="h-16 w-28 shrink-0 rounded-lg object-cover shadow-sm md:h-20 md:w-36"
                 />
                 <span className="flex flex-col overflow-hidden">
-                  <span className="truncate text-sm font-medium md:text-base">{resultado.titulo}</span>
-                  <span className="truncate text-xs text-muted-foreground md:text-sm">
+                  <span className="truncate text-sm font-semibold text-slate-900 md:text-base">
+                    {resultado.titulo}
+                  </span>
+                  <span className="mt-0.5 truncate text-xs font-medium text-slate-500 md:text-sm">
                     {resultado.canal}
                   </span>
                 </span>
@@ -560,21 +567,23 @@ export function LouvoresTable({
 
   function BotaoBuscarYoutube({ contexto }: { contexto: "editing" | "novo" }) {
     return (
-      <Button
+      <button
         type="button"
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 shrink-0 text-violet-600 hover:bg-violet-100 hover:text-violet-700"
-        title="Busca inteligente no YouTube"
+        title="Busca inteligente no YouTube via IA"
         disabled={buscandoVideos}
         onClick={() => buscarVideos(contexto)}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 active:scale-95"
+        style={{
+          background: "linear-gradient(135deg,#7c3aed 0%,#d946ef 100%)",
+          boxShadow: "0 2px 10px -2px rgba(139,92,246,0.60)",
+        }}
       >
         {buscandoVideos ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : (
-          <Sparkles className="h-3.5 w-3.5" />
+          <Sparkles className="h-3.5 w-3.5 drop-shadow-sm" />
         )}
-      </Button>
+      </button>
     );
   }
 

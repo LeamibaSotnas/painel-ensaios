@@ -188,6 +188,31 @@
   50%     { transform: scale(1.12); opacity: 1;   }
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Sino de notificação — balanço + botão que respira
+   ───────────────────────────────────────────────────────────── */
+@keyframes bell-ring {
+  0%,100% { transform: rotate(0deg); }
+  10%     { transform: rotate(16deg); }
+  20%     { transform: rotate(-14deg); }
+  30%     { transform: rotate(10deg); }
+  40%     { transform: rotate(-8deg); }
+  50%     { transform: rotate(6deg); }
+  60%     { transform: rotate(-4deg); }
+  70%     { transform: rotate(2deg); }
+}
+
+@keyframes btn-breathe {
+  0%,100% { transform: scale(1);    box-shadow: 0 4px 14px -4px rgba(251,146,60,0.50); }
+  50%     { transform: scale(1.015); box-shadow: 0 6px 22px -4px rgba(251,146,60,0.75); }
+}
+
+@keyframes badge-pop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  70%  { transform: scale(1.2); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
 @layer utilities {
   /* Estilo "caderno inteligente": linhas horizontais suaves, como um planner
      ou caderno executivo organizado — usado em áreas de anotação livre

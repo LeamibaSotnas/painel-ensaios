@@ -6,8 +6,10 @@ import {
   Check,
   List,
   Loader2,
+  MessageSquarePlus,
   Pencil,
   Plus,
+  Send,
   Trash2,
   X,
 } from "lucide-react";
@@ -32,6 +34,8 @@ import type {
 
 export type { EnsaioEditavel, EnsaioGradeComDepartamento };
 
+type PrioridadeObs = "NORMAL" | "ALTA" | "URGENTE";
+
 export interface EnsaioGridProps {
   data: EnsaioGradeComDepartamento[];
   departamentos: Departamento[];
@@ -40,6 +44,12 @@ export interface EnsaioGridProps {
   onAtualizarEnsaio: (id: string, valores: EnsaioEditavel) => Promise<{ erro?: string } | void>;
   onAdicionarEnsaio: (valores: EnsaioEditavel) => Promise<{ erro?: string } | void>;
   onRemoverEnsaio: (id: string) => Promise<{ erro?: string } | void>;
+  /** Quando fornecido, exibe o botão "Inserir Observação" — broadcast global. */
+  onCriarObservacao?: (dados: {
+    titulo: string;
+    descricao: string;
+    prioridade: PrioridadeObs;
+  }) => Promise<{ erro?: string }>;
 }
 
 const DRAFT_VAZIO = (departamentoId: string): EnsaioEditavel => ({
@@ -232,6 +242,7 @@ export function EnsaioGrid({
   onAtualizarEnsaio,
   onAdicionarEnsaio,
   onRemoverEnsaio,
+  onCriarObservacao,
 }: EnsaioGridProps) {
   const [visao, setVisao] = React.useState<"lista" | "calendario">("lista");
   const [editingId, setEditingId] = React.useState<string | null>(null);
@@ -245,6 +256,39 @@ export function EnsaioGrid({
   );
   const [isSavingNovo, setIsSavingNovo] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
+
+  // ── Modal de observação broadcast ────────────────────────────────────────
+  const [isObsOpen, setIsObsOpen] = React.useState(false);
+  const [obsTitulo, setObsTitulo] = React.useState("");
+  const [obsTexto, setObsTexto] = React.useState("");
+  const [obsPrioridade, setObsPrioridade] = React.useState<PrioridadeObs>("NORMAL");
+  const [isSavingObs, setIsSavingObs] = React.useState(false);
+  const [obsErro, setObsErro] = React.useState<string | null>(null);
+
+  async function salvarObservacao() {
+    if (!onCriarObservacao || !obsTexto.trim()) return;
+    setIsSavingObs(true);
+    setObsErro(null);
+    try {
+      const resultado = await onCriarObservacao({
+        titulo: obsTitulo.trim() || "Observação geral",
+        descricao: obsTexto.trim(),
+        prioridade: obsPrioridade,
+      });
+      if (resultado?.erro) {
+        setObsErro(resultado.erro);
+        return;
+      }
+      setIsObsOpen(false);
+      setObsTitulo("");
+      setObsTexto("");
+      setObsPrioridade("NORMAL");
+    } catch (e) {
+      setObsErro(e instanceof Error ? e.message : "Não foi possível enviar a observação.");
+    } finally {
+      setIsSavingObs(false);
+    }
+  }
 
   function iniciarEdicao(ensaio: EnsaioGradeComDepartamento) {
     setErro(null);
@@ -315,6 +359,140 @@ export function EnsaioGrid({
   }
 
   return (
+    <>
+    {/* ── Modal de observação broadcast ────────────────────────────────────── */}
+    {isObsOpen && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}
+      >
+        <div
+          className="relative w-full max-w-lg rounded-2xl border border-white/20 p-6 shadow-2xl"
+          style={{
+            background:
+              "linear-gradient(145deg, rgba(12,8,35,0.97) 0%, rgba(25,15,70,0.97) 55%, rgba(40,10,55,0.97) 100%)",
+          }}
+        >
+          {/* Header do modal */}
+          <div className="mb-5 flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-md"
+              style={{
+                background: "linear-gradient(135deg,#f59e0b,#ea580c)",
+                boxShadow: "0 4px 14px -4px rgba(245,158,11,0.50)",
+              }}
+            >
+              <MessageSquarePlus className="h-5 w-5 text-white" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2
+                className="text-xl font-black"
+                style={{
+                  background: "linear-gradient(90deg,#fbbf24,#fb923c)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Nova Observação
+              </h2>
+              <p className="text-[11px] text-white/45">
+                Disparada automaticamente para todos os departamentos
+              </p>
+            </div>
+            <button
+              onClick={() => setIsObsOpen(false)}
+              className="ml-2 rounded-lg p-1.5 text-white/40 transition-colors hover:bg-white/10 hover:text-white/80"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Campo: Título */}
+          <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-white/55">
+            Título
+          </label>
+          <input
+            value={obsTitulo}
+            onChange={(e) => setObsTitulo(e.target.value)}
+            placeholder="Assunto da observação..."
+            className="mb-4 w-full rounded-xl border border-white/12 bg-white/[0.07] px-4 py-2.5 text-sm text-white placeholder:text-white/30 transition-all focus:border-amber-400/50 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+          />
+
+          {/* Campo: Mensagem */}
+          <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-white/55">
+            Mensagem
+          </label>
+          <textarea
+            value={obsTexto}
+            onChange={(e) => setObsTexto(e.target.value)}
+            placeholder="Escreva a observação para todos os departamentos..."
+            rows={5}
+            className="mb-4 w-full resize-none rounded-xl border border-white/12 bg-white/[0.07] px-4 py-3 text-sm text-white placeholder:text-white/30 transition-all focus:border-amber-400/50 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+          />
+
+          {/* Seletor de prioridade */}
+          <div className="mb-5 flex gap-2">
+            {(["NORMAL", "ALTA", "URGENTE"] as PrioridadeObs[]).map((p) => {
+              const ativo = obsPrioridade === p;
+              const cor =
+                p === "URGENTE"
+                  ? ativo ? "bg-red-500 text-white shadow-md shadow-red-500/40" : "border border-red-400/20 text-red-300/60 hover:border-red-400/40"
+                  : p === "ALTA"
+                  ? ativo ? "bg-amber-500 text-white shadow-md shadow-amber-500/40" : "border border-amber-400/20 text-amber-300/60 hover:border-amber-400/40"
+                  : ativo ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/30" : "border border-emerald-500/20 text-emerald-300/60 hover:border-emerald-500/40";
+              return (
+                <button
+                  key={p}
+                  onClick={() => setObsPrioridade(p)}
+                  className={cn(
+                    "flex-1 rounded-lg px-3 py-1.5 text-xs font-bold transition-all duration-200",
+                    cor
+                  )}
+                >
+                  {p}
+                </button>
+              );
+            })}
+          </div>
+
+          {obsErro && (
+            <p className="mb-3 rounded-xl border border-red-400/25 bg-red-900/30 px-3 py-2 text-xs text-red-300">
+              {obsErro}
+            </p>
+          )}
+
+          {/* Botão de envio — respira com animação btn-breathe */}
+          <button
+            onClick={salvarObservacao}
+            disabled={isSavingObs || !obsTexto.trim()}
+            className={cn(
+              "flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white",
+              "transition-all duration-200 active:scale-[0.98]",
+              "disabled:cursor-not-allowed disabled:opacity-50"
+            )}
+            style={{
+              background: "linear-gradient(135deg,#f59e0b 0%,#ea580c 100%)",
+              animation: !isSavingObs && obsTexto.trim()
+                ? "btn-breathe 2.2s ease-in-out infinite"
+                : undefined,
+            }}
+          >
+            {isSavingObs ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Enviando para todos...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4" />
+                Disparar para todos os departamentos
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    )}
+
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         {erro && (
@@ -733,21 +911,66 @@ export function EnsaioGrid({
         </div>
       )}
 
+      {/* Botões de ação — aparecem quando não está adicionando ensaio */}
       {editavel && visao === "lista" && !isAdding && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit gap-2"
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => {
+              setIsAdding(true);
+              setNovoDraft(DRAFT_VAZIO(departamentos[0]?.id ?? ""));
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Agendar ensaio
+          </Button>
+
+          {onCriarObservacao && (
+            <button
+              onClick={() => {
+                setObsErro(null);
+                setIsObsOpen(true);
+              }}
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white",
+                "transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
+              )}
+              style={{
+                background: "linear-gradient(135deg,#f59e0b 0%,#ea580c 80%)",
+                boxShadow: "0 4px 14px -4px rgba(245,158,11,0.55)",
+              }}
+            >
+              <MessageSquarePlus className="h-4 w-4 shrink-0" />
+              Inserir Observação
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Botão "Inserir Observação" também disponível enquanto está adicionando ensaio */}
+      {editavel && isAdding && onCriarObservacao && (
+        <button
           onClick={() => {
-            setIsAdding(true);
-            setNovoDraft(DRAFT_VAZIO(departamentos[0]?.id ?? ""));
+            setObsErro(null);
+            setIsObsOpen(true);
+          }}
+          className={cn(
+            "w-fit flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white",
+            "transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
+          )}
+          style={{
+            background: "linear-gradient(135deg,#f59e0b 0%,#ea580c 80%)",
+            boxShadow: "0 4px 14px -4px rgba(245,158,11,0.55)",
           }}
         >
-          <Plus className="h-4 w-4" />
-          Agendar ensaio
-        </Button>
+          <MessageSquarePlus className="h-4 w-4 shrink-0" />
+          Inserir Observação
+        </button>
       )}
     </div>
+    </>
   );
 }
 

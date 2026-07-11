@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { BuscaCifraClub } from "@/components/BuscaCifraClub";
+import { NotificacaoBell } from "@/components/NotificacaoBell";
 import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
 import { ehAdmin } from "@/core/auth/permissoes";
 import { sair } from "@/app/login-actions";
@@ -38,6 +39,9 @@ export default async function DashboardLayout({
           <div className="flex items-center gap-3">
             {/* Acesso rápido ao Cifra Club (apenas admins, desktop) */}
             {isAdmin && <BuscaCifraClub />}
+
+            {/* Sino de notificações — polling de observações novas */}
+            <NotificacaoBell />
 
             <span className="text-sm text-muted-foreground">
               {usuario.nome} ·{" "}
