@@ -16,16 +16,20 @@ export function BuscaCifraClub() {
 
   return (
     <>
-      {/* ── Botão de gatilho ─────────────────────────────────────────────── */}
-      <Button
+      {/* ── Botão de gatilho — gradiente em destaque ──────────────────────── */}
+      <button
         onClick={() => setAberto(true)}
-        variant="outline"
-        size="sm"
-        className="h-8 gap-1.5 text-xs border-violet-200 text-violet-700 hover:bg-violet-50"
+        className={[
+          "inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold text-white",
+          "bg-gradient-to-r from-fuchsia-500 via-violet-600 to-purple-600",
+          "shadow-md shadow-fuchsia-500/35",
+          "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-fuchsia-500/45",
+          "active:scale-95",
+        ].join(" ")}
       >
         <Guitar className="h-3.5 w-3.5" />
         Cifra Club
-      </Button>
+      </button>
 
       {/* ── Overlay modal ────────────────────────────────────────────────── */}
       {aberto && (

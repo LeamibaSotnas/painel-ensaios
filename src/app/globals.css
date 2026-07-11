@@ -54,13 +54,13 @@
   body {
     @apply text-foreground;
     min-height: 100vh;
-    /* Hologram gradient — #7DF9FF → #3B82F6 → #9D00FF */
-    background: linear-gradient(135deg, #7DF9FF 0%, #3B82F6 50%, #9D00FF 100%);
+    /* Arctic Wave — #003973 (navy profundo) → #E5E5BE (creme suave) */
+    background: linear-gradient(135deg, #003973 0%, #1a6bb5 50%, #E5E5BE 100%);
     background-attachment: fixed;
   }
 
-  /* Camada de profundidade sobre o hologram: clareia levemente o centro
-     e escurece as bordas para dar volume sem alterar a paleta. */
+  /* Camada de profundidade sobre o Arctic Wave:
+     destaque central brilhante + reforço dos cantos. */
   body::before {
     content: "";
     position: fixed;
@@ -68,9 +68,9 @@
     z-index: -1;
     pointer-events: none;
     background-image:
-      radial-gradient(60rem 50rem at 50% 50%, rgba(255, 255, 255, 0.12), transparent 70%),
-      radial-gradient(30rem 30rem at 0% 100%,  rgba(157, 0, 255, 0.25),    transparent 60%),
-      radial-gradient(30rem 30rem at 100% 0%,  rgba(125, 249, 255, 0.2),   transparent 60%);
+      radial-gradient(60rem 50rem at 50% 50%, rgba(255, 255, 255, 0.10), transparent 70%),
+      radial-gradient(35rem 35rem at 0% 100%,  rgba(0, 30, 80, 0.45),    transparent 65%),
+      radial-gradient(30rem 30rem at 100% 0%,  rgba(229, 229, 190, 0.18), transparent 60%);
   }
 
   ::selection {
@@ -85,11 +85,11 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background-color: hsl(262 40% 70% / 0.45);
+    background-color: rgba(0, 80, 160, 0.45);
     border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(262 50% 60% / 0.6);
+    background-color: rgba(0, 100, 200, 0.60);
   }
 }
 
@@ -107,11 +107,11 @@
 .aurora-login {
   position: absolute;
   inset: 0;
-  /* Suaviza o hologram na tela de login com reflexos brancos e roxos */
+  /* Suaviza o Arctic Wave na tela de login com reflexos brancos e azuis */
   background:
-    radial-gradient(ellipse 120% 80% at 20%  20%, rgba(255, 255, 255, 0.22), transparent 55%),
-    radial-gradient(ellipse 100% 70% at 80%  80%, rgba(157, 0, 255, 0.30),   transparent 55%),
-    radial-gradient(ellipse 80%  60% at 80%  10%, rgba(125, 249, 255, 0.20), transparent 55%);
+    radial-gradient(ellipse 120% 80% at 20%  20%, rgba(255, 255, 255, 0.20), transparent 55%),
+    radial-gradient(ellipse 100% 70% at 80%  80%, rgba(0, 57, 115, 0.35),    transparent 55%),
+    radial-gradient(ellipse 80%  60% at 80%  10%, rgba(229, 229, 190, 0.18), transparent 55%);
   background-size: 200% 200%;
   animation: aurora-wave 14s ease-in-out infinite;
   pointer-events: none;

@@ -53,49 +53,73 @@ export function DashboardSidebar({ usuario }: { usuario: Usuario }) {
   ];
 
   return (
-    <aside className="hidden w-64 flex-col gap-1 border-r border-violet-100 bg-white/60 p-4 backdrop-blur-xl md:flex">
+    <aside
+      className="hidden w-64 flex-col gap-1 border-r border-white/10 p-4 backdrop-blur-2xl md:flex"
+      style={{ background: "rgba(0,30,80,0.92)" }}
+    >
+      {/* Logo */}
       <div className="px-2 py-4">
-        <p className="bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-sm font-bold leading-tight text-transparent">
+        <p className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-100 bg-clip-text text-sm font-black leading-tight text-transparent tracking-wide">
           Painel de Ensaios
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-1 text-[11px] text-sky-300/60">
           {usuario.nome} · {usuario.regra}
         </p>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1">
+      {/* Nav items */}
+      <nav className="flex flex-1 flex-col gap-0.5">
         {itens.map(({ href, label, icon: Icon }) => {
-          const ativo =
-            pathname === href || pathname.startsWith(`${href}/`);
+          const ativo = pathname === href || pathname.startsWith(`${href}/`);
+          const isCifra = href === "/dashboard/cifraclub";
           return (
             <Link
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-all",
+                "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 ativo
-                  ? "bg-gradient-to-r from-violet-600 to-fuchsia-500 font-medium text-white shadow-md shadow-violet-500/25"
-                  : "text-muted-foreground hover:bg-violet-50 hover:text-violet-700"
+                  ? "bg-gradient-to-r from-sky-400 to-cyan-400 text-slate-900 shadow-lg shadow-sky-500/35 scale-[1.02]"
+                  : isCifra
+                  ? "text-fuchsia-300 hover:bg-fuchsia-500/15 hover:text-fuchsia-100 hover:shadow-sm hover:shadow-fuchsia-500/20"
+                  : "text-sky-100/65 hover:bg-white/10 hover:text-white hover:shadow-sm"
               )}
             >
-              <Icon className="h-4 w-4" />
-              {label}
+              {/* Indicador lateral para item ativo */}
+              {ativo && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-white/60" />
+              )}
+              <Icon
+                className={cn(
+                  "h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110",
+                  ativo ? "text-slate-900" : isCifra ? "text-fuchsia-300" : ""
+                )}
+              />
+              <span className="flex-1">{label}</span>
+              {isCifra && !ativo && (
+                <span className="rounded-full bg-fuchsia-500/25 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-fuchsia-200">
+                  PRO
+                </span>
+              )}
             </Link>
           );
         })}
       </nav>
 
-      <form action={sair}>
-        <Button
-          type="submit"
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start gap-2 text-muted-foreground"
-        >
-          <LogOut className="h-4 w-4" />
-          Sair
-        </Button>
-      </form>
+      {/* Sair */}
+      <div className="mt-2 border-t border-white/10 pt-2">
+        <form action={sair}>
+          <Button
+            type="submit"
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start gap-2 text-sky-200/50 hover:bg-white/10 hover:text-white"
+          >
+            <LogOut className="h-4 w-4" />
+            Sair
+          </Button>
+        </form>
+      </div>
     </aside>
   );
 }

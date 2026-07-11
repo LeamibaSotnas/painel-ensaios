@@ -6,6 +6,7 @@ import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
 import { podeEditarDepartamento, podeVerDepartamento } from "@/core/auth/permissoes";
 import { gerarProximoCodigo } from "@/core/utils/code-generator";
 import { imagemDoDepartamento } from "@/core/utils/dept-imagem";
+import { gradienteDoDepartamento, luzDoBanner } from "@/core/utils/dept-tema";
 import { buscarMetadadosYoutube, buscarVideosYoutube } from "@/core/utils/youtube";
 import {
   alternarFavorito,
@@ -121,9 +122,10 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Banner com imagem específica do departamento + nome elegante sobreposto */}
-      <div className="relative -mx-4 -mt-4 mb-2 h-44 overflow-hidden rounded-t-2xl md:-mx-6 md:-mt-6 md:h-56">
+    <div className="flex flex-col">
+      {/* ── Banner com foto + luzes de palco por departamento ─────────────── */}
+      <div className="relative -mx-4 -mt-4 h-44 overflow-hidden md:-mx-6 md:-mt-6 md:h-56">
+        {/* Foto do departamento */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={imagemDoDepartamento(departamento.nome)}
@@ -131,9 +133,14 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
           className="h-full w-full object-cover object-center"
           loading="eager"
         />
-        {/* gradiente duplo: escurece base para legibilidade + toque sutil no topo */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
-        {/* Nome elegante sobre a imagem */}
+        {/* Escurecimento base para legibilidade do texto */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10" />
+        {/* Holofotes coloridos exclusivos por departamento */}
+        <div
+          className="absolute inset-0"
+          style={{ background: luzDoBanner(departamento.nome) }}
+        />
+        {/* Nome elegante */}
         <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 md:px-7 md:pb-6">
           <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-white/50">
             Planilha de louvores · {departamento.codigo_prefixo}
@@ -147,6 +154,11 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
         </div>
       </div>
 
+      {/* ── Área de conteúdo com gradiente escuro exclusivo por departamento ── */}
+      <div
+        className="-mx-4 -mb-4 px-4 py-6 md:-mx-6 md:-mb-6 md:px-6"
+        style={{ background: gradienteDoDepartamento(departamento.nome) }}
+      >
       <LouvoresTable
         data={louvores}
         departamentoId={departamentoId}
@@ -163,6 +175,7 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
         onBuscarMetadadosYoutube={handleBuscarMetadadosYoutube}
         onBuscarVideosYoutube={handleBuscarVideosYoutube}
       />
+      </div>
     </div>
   );
 }
