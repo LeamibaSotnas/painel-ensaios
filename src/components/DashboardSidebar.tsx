@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
+  Guitar,
   LayoutDashboard,
   LogOut,
   Music2,
@@ -12,7 +13,7 @@ import {
 
 import { sair } from "@/app/login-actions";
 import { Button } from "@/components/ui/button";
-import { podeGerenciarUsuarios } from "@/core/auth/permissoes";
+import { ehAdmin, podeGerenciarUsuarios } from "@/core/auth/permissoes";
 import { cn } from "@/lib/utils";
 import type { Usuario } from "@/types/database.types";
 
@@ -34,13 +35,22 @@ const ITEM_USUARIOS: ItemNavegacao = {
   icon: Users,
 };
 
+const ITEM_CIFRACLUB: ItemNavegacao = {
+  href: "/dashboard/cifraclub",
+  label: "Cifra Club",
+  icon: Guitar,
+};
+
 export function DashboardSidebar({ usuario }: { usuario: Usuario }) {
   const pathname = usePathname();
   const exibirItemUsuarios = podeGerenciarUsuarios(usuario);
+  const exibirCifraClub = ehAdmin(usuario);
 
-  const itens = exibirItemUsuarios
-    ? [...ITENS_BASE, ITEM_USUARIOS]
-    : ITENS_BASE;
+  const itens = [
+    ...ITENS_BASE,
+    ...(exibirItemUsuarios ? [ITEM_USUARIOS] : []),
+    ...(exibirCifraClub ? [ITEM_CIFRACLUB] : []),
+  ];
 
   return (
     <aside className="hidden w-64 flex-col gap-1 border-r border-violet-100 bg-white/60 p-4 backdrop-blur-xl md:flex">

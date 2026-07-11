@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, LayoutDashboard, Music2, Users } from "lucide-react";
+import { CalendarDays, Guitar, LayoutDashboard, Music2, Users } from "lucide-react";
 
-import { podeGerenciarUsuarios } from "@/core/auth/permissoes";
+import { ehAdmin, podeGerenciarUsuarios } from "@/core/auth/permissoes";
 import { cn } from "@/lib/utils";
 import type { Usuario } from "@/types/database.types";
 
@@ -26,6 +26,12 @@ const ITEM_USUARIOS: ItemNavegacao = {
   icon: Users,
 };
 
+const ITEM_CIFRACLUB: ItemNavegacao = {
+  href: "/dashboard/cifraclub",
+  label: "Cifras",
+  icon: Guitar,
+};
+
 /**
  * Navegação inferior fixa, exibida apenas em telas pequenas (md:hidden).
  * Substitui a sidebar nesse breakpoint — versão dedicada para mobile.
@@ -33,8 +39,13 @@ const ITEM_USUARIOS: ItemNavegacao = {
 export function MobileNav({ usuario }: { usuario: Usuario }) {
   const pathname = usePathname();
   const exibirItemUsuarios = podeGerenciarUsuarios(usuario);
+  const exibirCifraClub = ehAdmin(usuario);
 
-  const itens = exibirItemUsuarios ? [...ITENS_BASE, ITEM_USUARIOS] : ITENS_BASE;
+  const itens = [
+    ...ITENS_BASE,
+    ...(exibirItemUsuarios ? [ITEM_USUARIOS] : []),
+    ...(exibirCifraClub ? [ITEM_CIFRACLUB] : []),
+  ];
 
   return (
     <nav

@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { MobileNav } from "@/components/MobileNav";
+import { BuscaCifraClub } from "@/components/BuscaCifraClub";
 import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
+import { ehAdmin } from "@/core/auth/permissoes";
 import { sair } from "@/app/login-actions";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
@@ -23,6 +25,8 @@ export default async function DashboardLayout({
     redirect("/");
   }
 
+  const isAdmin = ehAdmin(usuario);
+
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       <DashboardSidebar usuario={usuario} />
@@ -32,6 +36,9 @@ export default async function DashboardLayout({
             Painel de Ensaios
           </span>
           <div className="flex items-center gap-3">
+            {/* Acesso rápido ao Cifra Club (apenas admins, desktop) */}
+            {isAdmin && <BuscaCifraClub />}
+
             <span className="text-sm text-muted-foreground">
               {usuario.nome} ·{" "}
               <span className="font-medium text-violet-600">{usuario.regra}</span>
