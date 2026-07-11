@@ -13,14 +13,33 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       {/* Aurora: ondas de luz animadas com movimento suave */}
       <div className="aurora-login" aria-hidden="true" />
 
-      <div className="relative z-10 w-full max-w-sm rounded-3xl border border-white/60 bg-white/85 p-8 shadow-2xl shadow-violet-900/20 backdrop-blur-2xl">
-        <div className="mb-1 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-500 text-lg font-bold text-white shadow-md shadow-violet-500/30">
+      {/* Card glassmorphism — vidro fosco sobre o Arctic Wave */}
+      <div className="relative z-10 w-full max-w-sm rounded-3xl border border-white/30 bg-white/10 p-8 shadow-2xl shadow-black/30 backdrop-blur-xl">
+
+        {/* Frase devocional — aparece uma única vez, discreta e em destaque */}
+        <div className="mb-6 text-center">
+          <p
+            className="text-lg font-medium italic text-[#F5D77A]"
+            style={{ fontFamily: "'Cormorant Garamond', serif" }}
+          >
+            Glórias e honras
+          </p>
+          <p
+            className="text-sm italic tracking-wide text-[#F5D77A]/85"
+            style={{ fontFamily: "'Cormorant Garamond', serif" }}
+          >
+            a Ti Senhor Jesus
+          </p>
+          <div className="mx-auto mt-2 h-px w-14 bg-[#F5D77A]/55" />
+        </div>
+
+        {/* Ícone */}
+        <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-600 to-purple-700 text-xl font-bold text-white shadow-md shadow-purple-700/40">
           ♪
         </div>
-        <h1 className="mt-3 bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-xl font-bold tracking-tight text-transparent">
-          Painel de Ensaios
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+
+        <h1 className="text-2xl font-bold text-white">Painel de Ensaios</h1>
+        <p className="mb-6 mt-1 text-sm text-white/70">
           Entre com seu e-mail e senha para continuar.
         </p>
 

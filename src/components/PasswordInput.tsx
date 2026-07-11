@@ -29,11 +29,11 @@ export function PasswordInput({
         autoComplete={autoComplete}
         required={required}
         placeholder={placeholder}
-        className="w-full h-11 px-4 pr-12 rounded-2xl border border-white/60 
-                   bg-white/80 backdrop-blur-sm
+        className="w-full h-11 px-4 pr-12 rounded-2xl border border-white/40
+                   bg-white/90 text-slate-800
                    text-base font-medium
-                   focus:outline-none focus:ring-2 focus:ring-violet-600 focus:ring-offset-2
-                   placeholder:text-muted-foreground
+                   focus:outline-none focus:ring-2 focus:ring-fuchsia-400/40 focus:ring-offset-0
+                   placeholder:text-slate-400
                    transition-all duration-200"
       />
       <button
