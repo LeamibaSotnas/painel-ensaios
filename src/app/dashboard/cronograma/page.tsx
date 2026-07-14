@@ -17,8 +17,11 @@ export default async function CronogramaPage() {
   const usuarioAtual = await getUsuarioAtual();
   const ehSuperAdminAtual = usuarioAtual?.regra === "ADMIN";
   const meuDepartamentoId = ehSuperAdminAtual ? undefined : usuarioAtual?.departamento_id ?? undefined;
-  // Membro (MUSICOS) só visualiza o cronograma; os demais papéis podem agendar/editar/remover.
-  const podeEditarCronograma = usuarioAtual?.regra !== "MUSICOS";
+  // Apenas ADMIN e LIDER podem agendar/editar/remover ensaios.
+  // ADMIN_PAINEL e LIDER (mas não MUSICOS) podem inserir observações.
+  const podeAgendarEnsaio =
+    usuarioAtual?.regra === "ADMIN" || usuarioAtual?.regra === "LIDER";
+  const podeInserirObservacao = usuarioAtual?.regra !== "MUSICOS";
 
   const departamentosTodos = await listarDepartamentos();
   const departamentos = meuDepartamentoId
@@ -35,7 +38,7 @@ export default async function CronogramaPage() {
     valores: EnsaioEditavel
   ): Promise<{ erro?: string }> {
     "use server";
-    if (!podeEditarCronograma) {
+    if (!podeAgendarEnsaio) {
       return { erro: "Você não tem permissão para editar o cronograma." };
     }
     try {
@@ -49,7 +52,7 @@ export default async function CronogramaPage() {
 
   async function handleAdicionarEnsaio(valores: EnsaioEditavel): Promise<{ erro?: string }> {
     "use server";
-    if (!podeEditarCronograma) {
+    if (!podeAgendarEnsaio) {
       return { erro: "Você não tem permissão para agendar ensaios." };
     }
     try {
@@ -63,7 +66,7 @@ export default async function CronogramaPage() {
 
   async function handleRemoverEnsaio(id: string): Promise<{ erro?: string }> {
     "use server";
-    if (!podeEditarCronograma) {
+    if (!podeAgendarEnsaio) {
       return { erro: "Você não tem permissão para remover ensaios." };
     }
     try {
@@ -82,7 +85,7 @@ export default async function CronogramaPage() {
     prioridade: string;
   }): Promise<{ erro?: string }> {
     "use server";
-    if (!podeEditarCronograma) {
+    if (!podeInserirObservacao) {
       return { erro: "Você não tem permissão para inserir observações." };
     }
     try {
@@ -119,11 +122,11 @@ export default async function CronogramaPage() {
       <EnsaioGrid
         data={ensaios}
         departamentos={departamentos}
-        editavel={podeEditarCronograma}
+        editavel={podeAgendarEnsaio}
         onAtualizarEnsaio={handleAtualizarEnsaio}
         onAdicionarEnsaio={handleAdicionarEnsaio}
         onRemoverEnsaio={handleRemoverEnsaio}
-        onCriarObservacao={podeEditarCronograma ? handleCriarObservacaoGlobal : undefined}
+        onCriarObservacao={podeInserirObservacao ? handleCriarObservacaoGlobal : undefined}
       />
     </div>
   );

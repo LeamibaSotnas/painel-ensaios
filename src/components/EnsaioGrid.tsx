@@ -128,6 +128,17 @@ function CamposExtras({
   );
 }
 
+/** Mapeia nome do departamento → cor vibrante (hash determinístico) */
+function corDept(nome: string): string {
+  const palette = [
+    "#7c3aed", "#0ea5e9", "#10b981", "#f59e0b",
+    "#ef4444", "#ec4899", "#06b6d4", "#f97316",
+  ];
+  let h = 0;
+  for (const c of nome) h = ((h * 31) + c.charCodeAt(0)) & 0xffff;
+  return palette[h % palette.length];
+}
+
 /** Agrupa os ensaios por dia (YYYY-MM-DD) do mês exibido, para a visão em calendário. */
 function useDiasDoMes(referencia: Date) {
   return React.useMemo(() => {
@@ -153,6 +164,7 @@ function VisaoCalendario({ data }: { data: EnsaioGradeComDepartamento[] }) {
     const hoje = new Date();
     return new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   });
+  const [diaSel, setDiaSel] = React.useState<string | null>(null);
   const celulas = useDiasDoMes(mesAtual);
 
   const ensaiosPorDia = React.useMemo(() => {
@@ -165,73 +177,181 @@ function VisaoCalendario({ data }: { data: EnsaioGradeComDepartamento[] }) {
     return mapa;
   }, [data]);
 
+  // Departamentos distintos visíveis no mês atual (para legenda)
+  const prefixoMes = `${mesAtual.getFullYear()}-${String(mesAtual.getMonth() + 1).padStart(2, "0")}`;
+  const deptsMes = React.useMemo(() => {
+    const nomes = data
+      .filter((e) => e.data.startsWith(prefixoMes))
+      .map((e) => e.departamento_nome);
+    return [...new Set(nomes)];
+  }, [data, prefixoMes]);
+
+  const hoje = new Date().toISOString().slice(0, 10);
   const nomeMes = mesAtual.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const ensaiosDiaSel = diaSel ? (ensaiosPorDia.get(diaSel) ?? []) : [];
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-4">
+    <div className="flex flex-col gap-3 rounded-xl border border-violet-100 bg-white/70 p-4 shadow-sm backdrop-blur-sm">
+      {/* Cabeçalho */}
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium capitalize">{nomeMes}</span>
+        <span className="text-sm font-semibold capitalize">{nomeMes}</span>
         <div className="flex gap-1">
           <Button
             variant="outline"
             size="sm"
-            onClick={() =>
-              setMesAtual((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))
-            }
+            onClick={() => {
+              setMesAtual((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1));
+              setDiaSel(null);
+            }}
           >
             ‹
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() =>
-              setMesAtual((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))
-            }
+            onClick={() => {
+              setMesAtual((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1));
+              setDiaSel(null);
+            }}
           >
             ›
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
-        {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((dia) => (
-          <span key={dia}>{dia}</span>
+      {/* Dias da semana */}
+      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
+          <span key={d}>{d}</span>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+      {/* Grade de dias */}
+      <div className="grid grid-cols-7 gap-1">
         {celulas.map((celula, index) => {
           if (!celula.data) {
-            return <div key={`vazio-${index}`} className="min-h-12 rounded-md sm:min-h-20" />;
+            return <div key={`vazio-${index}`} className="min-h-14 rounded-xl sm:min-h-20" />;
           }
           const ensaiosDoDia = ensaiosPorDia.get(celula.data) ?? [];
           const dia = Number(celula.data.slice(-2));
-          const visiveis = ensaiosDoDia.slice(0, 2);
-          const restantes = ensaiosDoDia.length - visiveis.length;
+          const eHoje = celula.data === hoje;
+          const isSel = diaSel === celula.data;
+          const temEnsaio = ensaiosDoDia.length > 0;
+
           return (
             <div
               key={celula.data}
-              className="min-h-12 rounded-md border bg-muted/20 p-0.5 text-[10px] sm:min-h-20 sm:p-1 sm:text-xs"
+              onClick={() => temEnsaio && setDiaSel(isSel ? null : celula.data!)}
+              className={cn(
+                "relative flex min-h-14 flex-col rounded-xl p-1.5 transition-all duration-150 sm:min-h-20 sm:p-2",
+                eHoje
+                  ? "bg-violet-50 ring-2 ring-violet-400 ring-offset-1"
+                  : "bg-slate-50/60 border border-slate-100",
+                isSel && "bg-violet-100/70 ring-2 ring-violet-500 ring-offset-1",
+                temEnsaio && !isSel && "cursor-pointer hover:bg-violet-50/80 hover:border-violet-200",
+                temEnsaio && "hover:shadow-sm"
+              )}
             >
-              <span className="text-muted-foreground">{dia}</span>
-              <div className="mt-0.5 flex flex-col gap-0.5 sm:mt-1">
-                {visiveis.map((ensaio) => (
+              {/* Número do dia */}
+              <span
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold leading-none",
+                  eHoje
+                    ? "bg-violet-500 text-white shadow-md shadow-violet-500/40"
+                    : "text-slate-500"
+                )}
+              >
+                {dia}
+              </span>
+
+              {/* Chips coloridos de ensaio */}
+              <div className="mt-1 flex flex-col gap-0.5">
+                {ensaiosDoDia.slice(0, 2).map((ensaio) => (
                   <span
                     key={ensaio.id}
-                    className="truncate rounded bg-primary/10 px-1 py-0.5 text-primary"
-                    title={`${ensaio.departamento_nome} · ${ensaio.hora_inicio.slice(0, 5)}`}
+                    className="block truncate rounded-md px-1 py-0.5 text-[9px] font-semibold leading-none text-white sm:text-[10px]"
+                    style={{ background: corDept(ensaio.departamento_nome) }}
                   >
-                    {ensaio.hora_inicio.slice(0, 5)} {ensaio.departamento_nome}
+                    <span className="hidden sm:inline">{ensaio.hora_inicio.slice(0, 5)} · </span>
+                    {ensaio.departamento_nome.slice(0, 7)}
                   </span>
                 ))}
-                {restantes > 0 && (
-                  <span className="text-muted-foreground">+{restantes}</span>
+                {ensaiosDoDia.length > 2 && (
+                  <span className="text-[9px] font-medium text-violet-500">
+                    +{ensaiosDoDia.length - 2}
+                  </span>
                 )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Painel de detalhes do dia selecionado */}
+      {diaSel && ensaiosDiaSel.length > 0 && (
+        <div
+          className="rounded-xl border border-violet-200/60 bg-white/90 p-3 shadow-sm"
+          style={{ animation: "card-enter 0.22s ease-out both" }}
+        >
+          <div className="mb-2.5 flex items-center justify-between">
+            <p className="text-sm font-semibold capitalize text-violet-700">
+              {new Date(diaSel + "T00:00:00").toLocaleDateString("pt-BR", {
+                weekday: "long",
+                day: "2-digit",
+                month: "long",
+              })}
+            </p>
+            <button
+              onClick={() => setDiaSel(null)}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-700"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="flex flex-col gap-2">
+            {ensaiosDiaSel.map((ensaio) => {
+              const cor = corDept(ensaio.departamento_nome);
+              return (
+                <div
+                  key={ensaio.id}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5"
+                  style={{ background: `${cor}14` }}
+                >
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full shadow-sm"
+                    style={{ background: cor, boxShadow: `0 2px 6px ${cor}60` }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold" style={{ color: cor }}>
+                      {ensaio.departamento_nome}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {ensaio.hora_inicio.slice(0, 5)} – {ensaio.hora_fim.slice(0, 5)}
+                      {ensaio.local && ` · ${ensaio.local}`}
+                      {ensaio.responsavel && ` · ${ensaio.responsavel}`}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Legenda de departamentos do mês */}
+      {deptsMes.length > 0 && (
+        <div className="flex flex-wrap gap-3 border-t border-slate-100 pt-2">
+          {deptsMes.map((nome) => (
+            <span key={nome} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ background: corDept(nome) }}
+              />
+              {nome}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -919,20 +1039,22 @@ export function EnsaioGrid({
       )}
 
       {/* Botões de ação — aparecem quando não está adicionando ensaio */}
-      {editavel && visao === "lista" && !isAdding && (
+      {visao === "lista" && !isAdding && (editavel || !!onCriarObservacao) && (
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => {
-              setIsAdding(true);
-              setNovoDraft(DRAFT_VAZIO(departamentos[0]?.id ?? ""));
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            Agendar ensaio
-          </Button>
+          {editavel && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => {
+                setIsAdding(true);
+                setNovoDraft(DRAFT_VAZIO(departamentos[0]?.id ?? ""));
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              Agendar ensaio
+            </Button>
+          )}
 
           {onCriarObservacao && (
             <button
@@ -957,7 +1079,7 @@ export function EnsaioGrid({
       )}
 
       {/* Botão "Inserir Observação" também disponível enquanto está adicionando ensaio */}
-      {editavel && isAdding && onCriarObservacao && (
+      {onCriarObservacao && visao === "lista" && isAdding && (
         <button
           onClick={() => {
             setObsErro(null);

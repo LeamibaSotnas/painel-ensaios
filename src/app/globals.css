@@ -213,6 +213,11 @@
   100% { transform: scale(1);   opacity: 1; }
 }
 
+@keyframes toast-progress {
+  0%   { transform: scaleX(1); transform-origin: left; }
+  100% { transform: scaleX(0); transform-origin: left; }
+}
+
 @layer utilities {
   /* Estilo "caderno inteligente": linhas horizontais suaves, como um planner
      ou caderno executivo organizado — usado em áreas de anotação livre

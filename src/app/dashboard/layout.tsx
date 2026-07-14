@@ -5,6 +5,7 @@ import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { BuscaCifraClub } from "@/components/BuscaCifraClub";
 import { NotificacaoBell } from "@/components/NotificacaoBell";
+import { ToastNotificacoes } from "@/components/ToastNotificacoes";
 import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
 import { ehAdmin } from "@/core/auth/permissoes";
 import { sair } from "@/app/login-actions";
@@ -61,6 +62,8 @@ export default async function DashboardLayout({
         </main>
         <MobileNav usuario={usuario} />
       </div>
+      {/* Toasts flutuantes de novas observações */}
+      <ToastNotificacoes />
     </div>
   );
 }
