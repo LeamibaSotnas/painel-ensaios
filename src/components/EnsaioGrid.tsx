@@ -186,7 +186,10 @@ function VisaoCalendario({ data }: { data: EnsaioGradeComDepartamento[] }) {
     return [...new Set(nomes)];
   }, [data, prefixoMes]);
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
   const nomeMes = mesAtual.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   const ensaiosDiaSel = diaSel ? (ensaiosPorDia.get(diaSel) ?? []) : [];
 
