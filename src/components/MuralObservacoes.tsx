@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Bell,
   BellRing,
+  Building2,
   Calendar,
   CheckCircle2,
   ChevronDown,
@@ -16,6 +17,7 @@ import {
   MessageSquarePlus,
   Music2,
   Pencil,
+  Radio,
   RefreshCw,
   Shield,
   Tag,
@@ -304,6 +306,18 @@ function CartaoObservacao({
                 {pri.label}
               </span>
             )}
+            {/* badge origem: departamento ou broadcast global */}
+            {obs.departamento_id === null ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-violet-300 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                <Radio className="h-3 w-3" />
+                Global
+              </span>
+            ) : obs.departamento_nome ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                <Building2 className="h-3 w-3" />
+                {obs.departamento_nome}
+              </span>
+            ) : null}
           </div>
 
           <p className={cn("mt-1 text-sm font-semibold", lida ? "text-slate-700" : "text-slate-900")}>

@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
+import { BannerAvisosDepartamento } from "@/components/BannerAvisosDepartamento";
 import { LouvoresTable } from "@/components/LouvoresTable";
 import { getUsuarioAtual } from "@/core/auth/get-usuario-atual";
 import { podeEditarDepartamento, podeVerDepartamento } from "@/core/auth/permissoes";
@@ -17,6 +18,7 @@ import {
   getDepartamentoPorSlug,
   listarCodigosPorDepartamento,
   listarLouvoresPorDepartamento,
+  listarObservacoes,
   listarOrdemPorDepartamento,
   marcarExecutado,
   removerLouvor,
@@ -51,7 +53,11 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
     redirect("/dashboard/departamentos");
   }
 
-  const louvores = await listarLouvoresPorDepartamento(departamentoId);
+  const [louvores, observacoesDept] = await Promise.all([
+    listarLouvoresPorDepartamento(departamentoId),
+    listarObservacoes(departamentoId).catch(() => []),
+  ]);
+
   // Super Admin, Admin de Painel e Líder podem editar o repertório do próprio
   // departamento; Admin de Painel/Líder nunca editam o de outro departamento
   // (já garantido pelo redirect acima).
@@ -159,6 +165,17 @@ export default async function DepartamentoPage({ params }: DepartamentoPageProps
         className="-mx-4 -mb-4 px-4 py-6 md:-mx-6 md:-mb-6 md:px-6"
         style={{ background: gradienteDoDepartamento(departamento.nome) }}
       >
+      {/* Banner de avisos para ADMIN_PAINEL e MUSICOS */}
+      {observacoesDept.length > 0 && (
+        <div className="mb-6">
+          <BannerAvisosDepartamento
+            observacoes={observacoesDept}
+            nomeDepartamento={departamento.nome}
+            ehEditor={podeEditar}
+          />
+        </div>
+      )}
+
       <LouvoresTable
         data={louvores}
         departamentoId={departamentoId}

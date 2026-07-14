@@ -468,27 +468,31 @@ export async function listarUltimasAlteracoes(
 
 export async function listarObservacoes(departamentoId?: string): Promise<ObservacaoMural[]> {
   const db = await getDb();
-  // Retorna observações globais (departamento_id IS NULL) OU do departamento específico
+  // JOIN com departamentos para resolver o nome de origem de cada aviso
   const { rows } = departamentoId
     ? await db<ObservacaoMural>`
-        SELECT id, titulo, descricao, autor_nome, autor_id, departamento_id,
-               prioridade, categoria, status, criado_em, atualizado_em
-        FROM observacoes_mural
-        WHERE status != 'ARQUIVADA'
-          AND (departamento_id IS NULL OR departamento_id = ${departamentoId})
+        SELECT o.id, o.titulo, o.descricao, o.autor_nome, o.autor_id, o.departamento_id,
+               d.nome AS departamento_nome,
+               o.prioridade, o.categoria, o.status, o.criado_em, o.atualizado_em
+        FROM observacoes_mural o
+        LEFT JOIN departamentos d ON d.id = o.departamento_id
+        WHERE o.status != 'ARQUIVADA'
+          AND (o.departamento_id IS NULL OR o.departamento_id = ${departamentoId})
         ORDER BY
-          CASE prioridade WHEN 'URGENTE' THEN 0 WHEN 'ALTA' THEN 1 ELSE 2 END ASC,
-          criado_em DESC
+          CASE o.prioridade WHEN 'URGENTE' THEN 0 WHEN 'ALTA' THEN 1 ELSE 2 END ASC,
+          o.criado_em DESC
         LIMIT 50
       `
     : await db<ObservacaoMural>`
-        SELECT id, titulo, descricao, autor_nome, autor_id, departamento_id,
-               prioridade, categoria, status, criado_em, atualizado_em
-        FROM observacoes_mural
-        WHERE status != 'ARQUIVADA'
+        SELECT o.id, o.titulo, o.descricao, o.autor_nome, o.autor_id, o.departamento_id,
+               d.nome AS departamento_nome,
+               o.prioridade, o.categoria, o.status, o.criado_em, o.atualizado_em
+        FROM observacoes_mural o
+        LEFT JOIN departamentos d ON d.id = o.departamento_id
+        WHERE o.status != 'ARQUIVADA'
         ORDER BY
-          CASE prioridade WHEN 'URGENTE' THEN 0 WHEN 'ALTA' THEN 1 ELSE 2 END ASC,
-          criado_em DESC
+          CASE o.prioridade WHEN 'URGENTE' THEN 0 WHEN 'ALTA' THEN 1 ELSE 2 END ASC,
+          o.criado_em DESC
         LIMIT 50
       `;
   return rows;

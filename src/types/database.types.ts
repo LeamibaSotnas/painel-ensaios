@@ -135,8 +135,10 @@ export interface ObservacaoMural {
   descricao: string;
   autor_nome: string;
   autor_id: string;
-  /** ID do departamento alvo; null = visível para todos. */
+  /** ID do departamento alvo; null = visível para todos (broadcast). */
   departamento_id: string | null;
+  /** Nome do departamento resolvido via JOIN; null = broadcast global. */
+  departamento_nome?: string | null;
   prioridade: PrioridadeObservacao;
   categoria: CategoriaObservacao;
   status: StatusObservacao;
