@@ -16,7 +16,12 @@ const CAMINHO_CRONOGRAMA = "/dashboard/cronograma";
 export default async function CronogramaPage() {
   const usuarioAtual = await getUsuarioAtual();
   const ehSuperAdminAtual = usuarioAtual?.regra === "ADMIN";
-  const meuDepartamentoId = ehSuperAdminAtual ? undefined : usuarioAtual?.departamento_id ?? undefined;
+  // ADMIN_PAINEL ve todos os departamentos (somente leitura — sem poder agendar/editar)
+  const ehVisualizadorGeral =
+    ehSuperAdminAtual || usuarioAtual?.regra === "ADMIN_PAINEL";
+  const meuDepartamentoId = ehVisualizadorGeral
+    ? undefined
+    : usuarioAtual?.departamento_id ?? undefined;
   // Apenas ADMIN e LIDER podem agendar/editar/remover ensaios.
   // ADMIN_PAINEL e LIDER (mas não MUSICOS) podem inserir observações.
   const podeAgendarEnsaio =
@@ -29,7 +34,7 @@ export default async function CronogramaPage() {
     : departamentosTodos;
   const ensaios = await listarTodosEnsaios(meuDepartamentoId);
 
-  // Nota: as actions abaixo retornam `{ erro }` em vez de lançar exceção —
+  // Nota: as actions abaixo retornam { erro } em vez de lançar exceção —
   // erros lançados (throw) dentro de Server Actions chegam mascarados ao
   // cliente em produção ("An error occurred in the Server Components
   // render..."), escondendo a mensagem real.
@@ -92,7 +97,7 @@ export default async function CronogramaPage() {
     if (!podeInserirObservacao) {
       return { erro: "Você não tem permissão para inserir observações." };
     }
-    // Super Admin difunde para todos; demais usuários vinculam ao próprio departamento.
+    // Super Admin difunde para todos; demais usuarios vinculam ao próprio departamento.
     const deptIdAlvo =
       usuarioAtual?.regra === "ADMIN" ? null : (usuarioAtual?.departamento_id ?? null);
     try {
@@ -119,10 +124,10 @@ export default async function CronogramaPage() {
     <div className="flex flex-col gap-6">
       <header>
         <h1 className="bg-gradient-to-r from-violet-700 via-fuchsia-600 to-amber-500 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
-          {ehSuperAdminAtual ? "Cronograma geral" : "Cronograma do departamento"}
+          {ehVisualizadorGeral ? "Cronograma geral" : "Cronograma do departamento"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {ehSuperAdminAtual
+          {ehVisualizadorGeral
             ? "Agenda de ensaios de todos os departamentos."
             : "Agenda de ensaios do seu departamento."}
         </p>
