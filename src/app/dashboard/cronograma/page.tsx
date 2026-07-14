@@ -78,7 +78,11 @@ export default async function CronogramaPage() {
     return {};
   }
 
-  /** Broadcast global — departamento_id = null, visível a todos os departamentos. */
+  /**
+   * Cria uma observação vinculada ao departamento do autor.
+   * ADMIN (super) → departamento_id = null (broadcast global).
+   * LIDER / ADMIN_PAINEL → departamento_id = seu próprio departamento.
+   */
   async function handleCriarObservacaoGlobal(dados: {
     titulo: string;
     descricao: string;
@@ -88,13 +92,16 @@ export default async function CronogramaPage() {
     if (!podeInserirObservacao) {
       return { erro: "Você não tem permissão para inserir observações." };
     }
+    // Super Admin difunde para todos; demais usuários vinculam ao próprio departamento.
+    const deptIdAlvo =
+      usuarioAtual?.regra === "ADMIN" ? null : (usuarioAtual?.departamento_id ?? null);
     try {
       await criarObservacao({
         titulo: dados.titulo,
         descricao: dados.descricao,
         autorNome: usuarioAtual?.nome ?? "Líder",
         autorId: usuarioAtual?.id ?? "",
-        departamentoId: null, // null = broadcast para todos os departamentos
+        departamentoId: deptIdAlvo,
         prioridade: dados.prioridade as "NORMAL" | "ALTA" | "URGENTE",
         categoria: "COMUNICADO",
       });
@@ -103,6 +110,8 @@ export default async function CronogramaPage() {
     }
     revalidatePath("/dashboard");
     revalidatePath(CAMINHO_CRONOGRAMA);
+    // Invalida todas as páginas de departamento para que o banner apareça imediatamente.
+    revalidatePath("/dashboard/departamentos", "layout");
     return {};
   }
 
