@@ -106,6 +106,16 @@ export function BannerAvisosDepartamento({ observacoes, nomeDepartamento, ehEdit
 
   const temUrgente = naoLidas.some((o) => o.prioridade === "URGENTE");
 
+  // Calcula a fonte real das mensagens para o cabeçalho:
+  // Se todas vêm do mesmo departamento → mostra esse dept.
+  // Se todas são do Admin (global) → mostra "Administrador".
+  // Se misto → mostra o dept da página.
+  const fontes = [...new Set(naoLidas.map((o) => o.departamento_nome ?? null))];
+  const fonteLabel: string =
+    fontes.length === 1
+      ? (fontes[0] ?? "Administrador")   // único remetente
+      : nomeDepartamento;                 // misto → usa o dept da página
+
   function lerTodas() {
     naoLidas.forEach((o) => marcarLida(o.id));
     setLidas(new Set(observacoes.map((o) => o.id)));
@@ -150,7 +160,7 @@ export function BannerAvisosDepartamento({ observacoes, nomeDepartamento, ehEdit
               ? "1 aviso não lido"
               : `${naoLidas.length} avisos não lidos`}
             {" "}
-            <span className="font-medium opacity-80">· {nomeDepartamento}</span>
+            <span className="font-medium opacity-80">· {fonteLabel}</span>
           </p>
           <p className="text-[11px] text-white/70">
             {temUrgente ? "⚠ Há avisos urgentes — leia com atenção" : "Novos comunicados disponíveis"}
