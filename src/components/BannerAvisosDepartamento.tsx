@@ -19,7 +19,6 @@ import {
   ChevronDown,
   ChevronUp,
   Flame,
-  Radio,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -180,17 +179,11 @@ export function BannerAvisosDepartamento({ observacoes, nomeDepartamento, ehEdit
                 <div className="min-w-0 flex-1">
                   {/* Badges */}
                   <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                    {obs.departamento_id === null ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-violet-300 bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
-                        <Radio className="h-3 w-3" />
-                        Global
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                        <Building2 className="h-3 w-3" />
-                        {obs.departamento_nome ?? nomeDepartamento}
-                      </span>
-                    )}
+                    {/* Sempre mostra o departamento contextual — global ou específico */}
+                    <span className="inline-flex items-center gap-1 rounded-full border border-violet-300 bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                      <Building2 className="h-3 w-3" />
+                      {obs.departamento_nome ?? nomeDepartamento}
+                    </span>
                     {obs.prioridade === "URGENTE" && (
                       <span className="inline-flex items-center gap-1 rounded-full border border-rose-300 bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700">
                         <Flame className="h-3 w-3" />
